@@ -29,23 +29,27 @@ export async function generateAssessment(context: AssessmentContext, config: Mod
   try {
     if (!Array.isArray(raw.choices) || raw.choices.length !== 1) throw new ProviderError();
     const choice = record(raw.choices[0]);
-    if (choice.finish_reason !== "stop") throw new ProviderError();
+    if (choice.finish_reason !== "stop") throw new ProviderError("INCOMPLETE_OUTPUT");
     const content = modelText(record(choice.message).content, 16000);
     const result = record(JSON.parse(content));
     const keys = Object.keys(schema.properties);
     if (Object.keys(result).length !== keys.length || keys.some(key => !(key in result))) throw new ProviderError();
     const label = modelText(result.label, 128);
     const evidence = modelText(result.evidence, 4000);
-    if (!labels.includes(label) || !context.explanation.includes(evidence)) throw new ProviderError();
+    if (!labels.includes(label)) throw new ProviderError("INVALID_LABEL");
+    if (!context.explanation.includes(evidence)) throw new ProviderError("INVALID_EVIDENCE");
     if (typeof result.reviewRequired !== "boolean" || typeof result.diagnosisSupported !== "boolean") throw new ProviderError();
-    if (!Array.isArray(result.sourceIds) || result.sourceIds.some(id => typeof id !== "string" || !sourceIds.includes(id))) throw new ProviderError();
-    if (result.feedbackText !== null && (typeof result.feedbackText !== "string" || !result.feedbackText.trim() || result.feedbackText.length > 1200)) throw new ProviderError();
+    if (!Array.isArray(result.sourceIds) || result.sourceIds.some(id => typeof id !== "string" || !sourceIds.includes(id))) throw new ProviderError("INVALID_SOURCE_IDS");
+    if (result.feedbackText !== null && (typeof result.feedbackText !== "string" || !result.feedbackText.trim() || result.feedbackText.length > 1200)) throw new ProviderError("INVALID_FEEDBACK");
     const reviewRequired = result.reviewRequired || !result.diagnosisSupported || isReviewLabel(label);
-    if (!reviewRequired && (result.feedbackText === null || result.sourceIds.length === 0)) throw new ProviderError();
+    if (!reviewRequired && (result.feedbackText === null || result.sourceIds.length === 0)) throw new ProviderError("MISSING_FEEDBACK");
     const assessment: Assessment = {
       label, evidence, reviewRequired,
       feedback: reviewRequired ? null : { text: (result.feedbackText as string).trim(), sourceIds: [...new Set(result.sourceIds as string[])] },
     };
     return { ...assessment, model: typeof raw.model === "string" ? raw.model : config.generativeModel, usage: usageInfo(raw.usage) };
-  } catch { throw new ProviderError(); }
+  } catch (error) {
+    if (error instanceof ProviderError) throw error;
+    throw new ProviderError(error instanceof SyntaxError ? "INVALID_JSON" : "INVALID_SHAPE");
+  }
 }

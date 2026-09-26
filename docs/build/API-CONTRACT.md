@@ -2,7 +2,9 @@
 
 Status: `/api/analyze`, OpenRouter adapters, and attempt signing are implemented.
 `/api/verify` and signature verification remain the next milestone. Live model
-acceptance is pending local credentials and the explicit smoke test.
+acceptance requires a complete pass of the explicit smoke test. The latest run
+passed all six synthetic cases with Jev and DeepSeek V4.1 Flash; Space Bunny is
+untested, and this check does not establish educational accuracy.
 Shared browser-safe types live in `lib/contracts.ts`.
 
 ## POST /api/analyze
@@ -104,6 +106,9 @@ carry `Cache-Control: no-store` and a generated `X-Request-Id`.
 Server logs contain request/question IDs, model IDs, per-call latency, fallback
 state, safe numeric usage fields, and Jev distributions. They omit student text,
 credentials, attempt tokens, and raw provider responses.
+Failures also log a safe reason code and the upstream HTTP status when available;
+for example, `TIMEOUT`, `HTTP_ERROR`, `INVALID_EVIDENCE`, or `INVALID_SOURCE_IDS`.
+The public error response is unchanged.
 
 Run `npm run smoke:analyze` against the running local app once credentials are
 configured. Its six synthetic inputs exercise real inference and report expected

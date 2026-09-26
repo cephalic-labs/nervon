@@ -1,7 +1,13 @@
 import "server-only";
 
 export class ProviderError extends Error {
-  constructor() { super("The model provider could not return a valid assessment. Please try again."); }
+  readonly reason: string;
+  readonly httpStatus?: number;
+  constructor(reason = "INVALID_SHAPE", httpStatus?: number) {
+    super("The model provider could not return a valid assessment. Please try again.");
+    this.reason = reason;
+    this.httpStatus = httpStatus;
+  }
 }
 export class ConfigurationError extends Error {
   constructor() { super("Server model configuration is incomplete. Please contact the demo operator."); }
@@ -44,9 +50,10 @@ export async function postOpenRouter(path: string, body: unknown, config: ModelC
       method: "POST", headers: { Authorization: `Bearer ${config.apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify(body), signal: controller.signal, cache: "no-store", redirect: "error",
     });
-    if (!response.ok) throw new ProviderError();
+    if (!response.ok) throw new ProviderError("HTTP_ERROR", response.status);
     return record(await response.json());
-  } catch {
-    throw new ProviderError();
+  } catch (error) {
+    if (error instanceof ProviderError) throw error;
+    throw new ProviderError(controller.signal.aborted ? "TIMEOUT" : error instanceof SyntaxError ? "INVALID_JSON" : "NETWORK_ERROR");
   } finally { clearTimeout(timer); }
 }

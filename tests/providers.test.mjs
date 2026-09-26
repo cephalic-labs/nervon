@@ -64,10 +64,15 @@ test('generative requests require structured output and ground evidence and sour
 
 test('transport handles HTTP errors and timeouts with no retry or leaked error', async () => {
   let calls = 0;
-  await assert.rejects(postOpenRouter('/alpha/decisions', {}, config, 10, async () => { calls++; return new Response('SECRET provider details', { status: 429 }); }), error => error instanceof ProviderError && !error.message.includes('SECRET'));
+  await assert.rejects(postOpenRouter('/alpha/decisions', {}, config, 10, async () => { calls++; return new Response('SECRET provider details', { status: 429 }); }), error => error instanceof ProviderError && error.reason === 'HTTP_ERROR' && error.httpStatus === 429 && !error.message.includes('SECRET'));
   assert.equal(calls, 1);
   await assert.rejects(postOpenRouter('/alpha/decisions', {}, config, 5, async (_url, init) => new Promise((_resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('unexpected timeout')), 100);
     init.signal.addEventListener('abort', () => { clearTimeout(timer); reject(init.signal.reason); });
-  })), ProviderError);
+  })), error => error instanceof ProviderError && error.reason === 'TIMEOUT');
+});
+
+test('feedback diagnostic codes distinguish fabricated evidence and invalid sources', async () => {
+  await assert.rejects(generateAssessment(context, config, output.label, chat({ ...output, evidence: 'fabricated quote' })), error => error.reason === 'INVALID_EVIDENCE');
+  await assert.rejects(generateAssessment(context, config, output.label, chat({ ...output, sourceIds: ['missing'] })), error => error.reason === 'INVALID_SOURCE_IDS');
 });

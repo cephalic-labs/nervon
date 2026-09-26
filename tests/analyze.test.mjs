@@ -106,6 +106,16 @@ test('generative contradiction guard suppresses teaching and baseline can abstai
   }
 });
 
+test('failed feedback logs safe stage diagnostics without changing the public error', async () => {
+  const { handler, logs } = setup([jev(), { ...assessment, evidence: 'fabricated private provider output' }]);
+  const response = await handler(request(valid));
+  const data = await response.json();
+  assert.equal(response.status, 502);
+  assert.deepEqual(Object.keys(data.error).sort(), ['code', 'message']);
+  assert.ok(logs.some(event => event.stage === 'feedback' && event.reason === 'INVALID_EVIDENCE'));
+  assert.ok(!JSON.stringify(logs).includes('fabricated private provider output'));
+});
+
 test('signed binding has fixed expiry and contains no assessment content', () => {
   const token = signAttempt({ courseId: 'classical-genetics', coursePackVersion: '1.0.0', originalQuestionId: 'genotype-phenotype-1', nextQuestionId: null, localSessionId: 'session' }, env.ATTEMPT_SIGNING_SECRET, 1000);
   const binding = JSON.parse(Buffer.from(token.split('.')[0], 'base64url'));

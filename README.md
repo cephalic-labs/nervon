@@ -14,7 +14,8 @@ The second milestone adds `/api/analyze`, validated OpenRouter Jev and generativ
 adapters, input validation, grounded feedback checks, and signed attempt tokens.
 
 Not yet implemented: `/api/verify`, token signature verification, local session
-persistence, or synthetic cohort data. Live model acceptance is pending credentials.
+persistence, or synthetic cohort data. The latest live synthetic smoke run passed
+all six examples; this verifies integration, not educational accuracy.
 Existing pages are
 layout scaffolds and still show Statistics content. Their feedback is placeholder
 text, not AI inference. Do not present this milestone as the finished demo.
@@ -55,7 +56,7 @@ npm run lint
 npm run build
 ```
 
-Eighteen offline tests cover the course foundation plus model transport, response
+Twenty offline tests cover the course foundation plus model transport, response
 validation, timeouts, request limits, fallback, review states, evidence quotations,
 source checks, signed token contents, and privacy. The test-only module hook
 resolves `server-only` to
@@ -90,9 +91,15 @@ per-call latency, Jev distributions, and available usage metrics. A mismatch nee
 manual review; these examples cannot establish diagnostic accuracy. The smoke
 script sends authored student explanations, never canned model responses.
 
-At implementation time neither credential was configured, so live acceptance is
-**pending**. DeepSeek and Space Bunny structured-output compatibility and actual
-course behavior must be confirmed by the smoke run before the judged demo.
+Failed model calls log the stage (`decision`, `feedback`, or `baseline`) and a
+safe reason such as `TIMEOUT`, `HTTP_ERROR`, `INVALID_EVIDENCE`, or
+`INVALID_SOURCE_IDS`. HTTP failures include the upstream status, but never the
+upstream error body. The public API keeps its safe `PROVIDER_FAILURE` response.
+
+The latest live smoke run passed all six examples using Jev and DeepSeek V4.1
+Flash. The faulty-reasoning example took about 27 seconds; a separate targeted
+reproduction timed out once and then passed. Provider latency remains variable.
+Space Bunny has not been tested and requires its own live check before selection.
 
 ## Integration handoff
 

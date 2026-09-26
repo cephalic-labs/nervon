@@ -48,13 +48,19 @@ export function createAnalyzeHandler(dependencies: Dependencies = {}) {
         if (!(error instanceof ProviderError)) throw error;
         fallback = true;
         decisionProvider = "generative-baseline";
-        emit({ stage: "decision", model: config.jevModel, latencyMs: Date.now() - decisionStarted, outcome: "fallback" });
+        emit({ stage: "decision", model: config.jevModel, latencyMs: Date.now() - decisionStarted, outcome: "fallback", reason: error.reason, httpStatus: error.httpStatus });
       }
       if (decision?.reviewRequired) {
         assessment = { label: decision.label, evidence: input.explanation.slice(0, 400), reviewRequired: true, feedback: null };
       } else {
         const teachingStarted = Date.now();
-        const generated = await generateAssessment(context, config, decision?.label ?? null, dependencies.fetcher);
+        let generated;
+        try {
+          generated = await generateAssessment(context, config, decision?.label ?? null, dependencies.fetcher);
+        } catch (error) {
+          if (error instanceof ProviderError) emit({ stage: fallback ? "baseline" : "feedback", model: config.generativeModel, latencyMs: Date.now() - teachingStarted, outcome: "failed", reason: error.reason, httpStatus: error.httpStatus });
+          throw error;
+        }
         emit({ stage: fallback ? "baseline" : "feedback", model: safeModel(generated.model, config.generativeModel), latencyMs: Date.now() - teachingStarted, usage: generated.usage });
         assessment = generated;
       }
