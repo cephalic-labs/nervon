@@ -1,81 +1,133 @@
 import Link from "next/link";
-import { getPublicCourse } from "@/lib/course";
+import {
+  ArrowRight,
+  BookOpen,
+  MessageSquareText,
+  ScanLine,
+  Sprout,
+} from "lucide-react";
+import AppShell from "@/components/AppShell";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { GraduationCap, ArrowRight, Activity, BookOpen } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { getPublicCourse } from "@/lib/course";
 
 export default function CourseEntry() {
   const course = getPublicCourse("classical-genetics");
-
   return (
-    <div className="min-h-screen bg-slate-50/50">
-      <div className="max-w-5xl mx-auto p-8 flex flex-col gap-10 py-12">
-        <header className="flex flex-col gap-6 items-center text-center max-w-3xl mx-auto">
-          <div className="p-3 bg-primary/10 rounded-full">
-            <GraduationCap className="h-10 w-10 text-primary" />
+    <AppShell active="course">
+      <div className="grid gap-10 pb-12 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:gap-16">
+        <section className="py-4">
+          <p className="eyebrow mb-5">BIOLOGY / CLASSICAL GENETICS</p>
+          <h1 className="max-w-lg text-4xl font-semibold leading-tight text-balance sm:text-5xl">
+            Go beyond the answer.
+            <br />
+            <span className="text-primary">Understand the why.</span>
+          </h1>
+          <p className="mt-6 max-w-lg text-base leading-7 text-muted-foreground">
+            Work through a genetics question, explain your thinking, and get a
+            focused next step. Then try a new question to check what clicked.
+          </p>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link href="/learn" className={buttonVariants({ size: "lg" })}>
+              Start practising <ArrowRight />
+            </Link>
+            <Link
+              href="/educator"
+              className={buttonVariants({ variant: "outline", size: "lg" })}
+            >
+              Explore educator view
+            </Link>
           </div>
-          <div className="flex flex-col gap-3">
-            <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900">
-              {course.title}
-            </h1>
-            <p className="text-lg text-slate-600 max-w-2xl">
-              Welcome to Nervon, your personal university learning coach. We don&apos;t just grade your answers—we understand your reasoning and help you bridge the gaps.
-            </p>
+          <p className="mt-5 text-xs text-muted-foreground">
+            3 concepts · 6 questions · Course-grounded feedback
+          </p>
+        </section>
+        <section
+          className="rounded-2xl border border-primary/15 bg-[#eaf1ed] p-6 sm:p-8"
+          aria-label="How a practice session works"
+        >
+          <div className="mb-8 flex items-center justify-between">
+            <span className="eyebrow">A SMALL LOOP. A CLEARER IDEA.</span>
+            <Sprout className="size-6 text-primary" />
           </div>
-          {course.reviewStatus === "pending-educator-review" && (
-            <div className="bg-amber-100 text-amber-800 px-4 py-1.5 rounded-full text-sm font-medium border border-amber-200">
-              Pending Educator Review (Synthetic UI fixture — not live AI)
-            </div>
-          )}
-        </header>
-
-        <main className="flex flex-col gap-12">
-          <section className="grid gap-6 md:grid-cols-2">
-            <Card className="shadow-md border-slate-200/60 bg-white/50 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-blue-600" />
-                  Course Concepts
-                </CardTitle>
-                <CardDescription>The core modules you will master.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="flex flex-col gap-3">
-                  {course.concepts.map((concept) => (
-                    <li key={concept.id} className="flex flex-col">
-                      <span className="font-semibold text-slate-800">{concept.title}</span>
-                      <span className="text-sm text-slate-500 line-clamp-1">{concept.learningObjective}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-md border-slate-200/60 bg-white/50 backdrop-blur-sm flex flex-col justify-center">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-green-600" />
-                  Get Started
-                </CardTitle>
-                <CardDescription>Begin your learning journey or view cohort data.</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col sm:flex-row gap-4">
-                <Link href="/learn" className={buttonVariants({ size: "lg", className: "flex-1 shadow-sm group" })}>
-                  Start Learning
-                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
-                <Link href="/educator" className={buttonVariants({ variant: "outline", size: "lg", className: "flex-1" })}>
-                  Educator View
-                </Link>
-              </CardContent>
-            </Card>
-          </section>
-
-          <section className="text-sm text-slate-500 bg-slate-100/50 p-6 rounded-xl border border-slate-200/50 text-center max-w-3xl mx-auto">
-            <p><strong>Disclosure:</strong> {course.disclosure}</p>
-          </section>
-        </main>
+          <ol className="space-y-6">
+            {[
+              [
+                MessageSquareText,
+                "01",
+                "Explain your thinking",
+                "Your reasoning matters as much as your answer.",
+              ],
+              [
+                ScanLine,
+                "02",
+                "Find a possible gap",
+                "Live AI checks your explanation against a course rubric.",
+              ],
+              [
+                BookOpen,
+                "03",
+                "Learn, then try again",
+                "Use source-grounded feedback on a different question.",
+              ],
+            ].map(([Icon, n, title, description]) => {
+              const Symbol = Icon as typeof BookOpen;
+              return (
+                <li key={String(n)} className="flex gap-4">
+                  <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-primary/10 bg-white text-primary">
+                    <Symbol className="size-5" />
+                  </div>
+                  <div>
+                    <p className="mb-1 text-sm font-semibold">
+                      <span className="mr-2 text-primary">{String(n)}</span>
+                      {String(title)}
+                    </p>
+                    <p className="max-w-xs text-sm leading-6 text-muted-foreground">
+                      {String(description)}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+          <p className="mt-8 border-t border-primary/15 pt-4 text-xs leading-5 text-muted-foreground">
+            Not enough evidence? Nervon asks for clarification or educator
+            review instead of guessing.
+          </p>
+        </section>
       </div>
-    </div>
+      <section className="border-t pt-9">
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="eyebrow mb-2">YOUR COURSE MAP</p>
+            <h2 className="text-2xl font-semibold">
+              Three foundations of inheritance
+            </h2>
+          </div>
+          <Badge variant="outline">OpenStax Biology 2e</Badge>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          {course.concepts.map((c, i) => (
+            <Link
+              href={`/learn?concept=${c.id}`}
+              key={c.id}
+              className="group rounded-xl border bg-card p-6 transition-colors hover:border-primary/50"
+            >
+              <div className="mb-5 flex justify-between text-primary">
+                <span className="font-mono text-sm">0{i + 1}</span>
+                <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+              </div>
+              <h3 className="mb-3 text-lg font-semibold">{c.title}</h3>
+              <p className="text-sm leading-6 text-muted-foreground">
+                {c.learningObjective}
+              </p>
+              <p className="mt-6 text-xs font-medium text-primary">
+                2 questions · Explain & check
+              </p>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </AppShell>
   );
 }

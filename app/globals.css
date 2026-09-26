@@ -7,7 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans), Arial, sans-serif;
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -127,4 +127,51 @@
   html {
     @apply font-sans;
   }
+}
+:root {
+  --background: #f6f8f6;
+  --foreground: #20312a;
+  --card: #ffffff;
+  --card-foreground: #20312a;
+  --primary: #245b43;
+  --primary-foreground: #ffffff;
+  --secondary: #e9f0eb;
+  --secondary-foreground: #245b43;
+  --muted: #edf1ee;
+  --muted-foreground: #59675f;
+  --accent: #e9f0eb;
+  --accent-foreground: #245b43;
+  --border: #dce3dd;
+  --input: #b8c5bc;
+  --ring: #327153;
+  --destructive: #b12b32;
+  --radius: 0.75rem;
+}
+@layer base {
+  h1,h2,h3 { text-wrap: balance; }
+  p { overflow-wrap: anywhere; }
+  a,button,input,textarea,summary { touch-action: manipulation; }
+  a:focus-visible,summary:focus-visible { outline: 2px solid var(--ring); outline-offset: 4px; }
+  [data-slot="button"] { min-height: 2.75rem; }
+  [data-slot="input"] { min-height: 2.75rem; font-size: 1rem; }
+  [data-slot="textarea"] { font-size: 1rem; }
+}
+@layer components {
+  .page-width { width: min(100% - 2rem, 72rem); margin-inline: auto; }
+  .eyebrow { font-size: .6875rem; font-weight: 600; letter-spacing: .12em; color: var(--muted-foreground); }
+  .skip-link { position: fixed; top: .5rem; left: .5rem; z-index: 100; clip-path: inset(50%); padding: .75rem; background: white; transform: translateY(-150%); }
+  .skip-link:focus { clip-path: none; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,*::before,*::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+.demo-stage { width: min(100% - 2rem, 80rem); margin: 2rem auto; }
+.demo-slide { padding: 2.5rem 3rem; border-radius: 1rem; background: #173f30; color: white; }
+@media (max-width: 639px) { .demo-slide { padding: 1.5rem; } }
+@media print {
+  @page { size: 13.333in 7.5in; margin: 0; }
+  html,body { background: #173f30; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .demo-stage { width: 100%; margin: 0; }
+  .demo-slide { min-height: 7.5in; border-radius: 0; padding: .35in .5in; }
+  .demo-stage > nav { display: none; }
 }
