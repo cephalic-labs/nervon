@@ -1,6 +1,8 @@
 # Learner API handoff
 
-Status: contracts only. Neither endpoint, signing, nor live inference is implemented.
+Status: `/api/analyze`, OpenRouter adapters, and attempt signing are implemented.
+`/api/verify` and signature verification remain the next milestone. Live model
+acceptance is pending local credentials and the explicit smoke test.
 Shared browser-safe types live in `lib/contracts.ts`.
 
 ## POST /api/analyze
@@ -26,9 +28,9 @@ and `reason`. Use the private question's verification rubric; sufficient evidenc
 of a reasoning error means needsPractice, while uncertainty means educatorReview.
 Immediate success is not proof of lasting learning. The browser stores the result.
 
-## Stateless attempt binding (implementation deferred)
+## Stateless attempt binding
 
-Use `attemptId` as an opaque token signed with server-only `ATTEMPT_SIGNING_SECRET`.
+Analyze returns `attemptId` as an opaque token signed with server-only `ATTEMPT_SIGNING_SECRET`.
 The client must never decode or manufacture it. Define the signed payload as:
 
 ```ts
@@ -50,7 +52,7 @@ trusting payload fields. Signing does not encrypt the payload: include no studen
 responses, answer keys, rubrics, or API keys. The session ID is a random demo ID,
 not a real student identity or authentication mechanism.
 
-Before assessment, validate payload shape, supported token version, timestamps,
+The future verify handler must validate payload shape, supported token version, timestamps,
 signature, expiry, current course-pack version, both question IDs, same-concept
 pairing, and the submitted `nextQuestionId` matching the assigned ID. Review
 attempts with a null next question cannot be verified. Altered, expired, malformed,
@@ -77,6 +79,41 @@ All failures return `{ error: { code, message } }` with a safe, user-facing mess
 
 Validate provider output and feedback source IDs before returning them. Do not
 expose exception details, raw provider responses, secrets, or assessment keys.
+
+## OpenRouter behavior
+
+Both adapters use native server-side fetch and one `OPENROUTER_API_KEY`.
+Jev defaults to `typesafe/jev-1.13` at `/api/alpha/decisions`; the generative adapter
+defaults to `deepseek/deepseek-v4.1-flash` at `/api/v1/chat/completions`.
+`OPENROUTER_GENERATIVE_MODEL=stealth/space-bunny-alpha` explicitly selects the
+alternative. There is no automatic switching between generative models.
+
+Jev gets the selected question, key, required reasoning, rubric, and student
+response, with separate pattern and evidence-sufficiency choice questions.
+Probabilities are validated and logged, not used as validated educational scores.
+Review states skip teaching. Supported decisions receive a generative consistency
+check, exact evidence quotation, and short feedback grounded only in concept
+snippets. Jev failure invokes one structured generative diagnosis and feedback
+call. Feedback failure never retries as baseline. All generative calls require
+JSON Schema support (`strict: true`, `provider.require_parameters: true`), and
+output is validated locally. Unsupported structured output is a provider failure.
+
+Jev times out after 10 seconds; each generative call after 30 seconds. There are
+no application retries. No inference result is cached. Success and error responses
+carry `Cache-Control: no-store` and a generated `X-Request-Id`.
+Server logs contain request/question IDs, model IDs, per-call latency, fallback
+state, safe numeric usage fields, and Jev distributions. They omit student text,
+credentials, attempt tokens, and raw provider responses.
+
+Run `npm run smoke:analyze` against the running local app once credentials are
+configured. Its six synthetic inputs exercise real inference and report expected
+and actual labels, review state, provider, request ID, and end-to-end latency.
+Use request IDs to find actual model IDs and per-call metrics in server logs.
+The command exits 2 when credentials are missing, 1 on failed checks or diagnostic
+mismatches requiring review, and 0 when checks pass. Honest uncertainty is allowed.
+
+Sources: [Decisions API](https://openrouter.ai/docs/api/api-reference/alphadecisions/submit-a-decisions-request)
+and [structured outputs](https://openrouter.ai/docs/guides/features/structured-outputs).
 
 ## Development examples
 
