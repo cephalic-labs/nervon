@@ -46,8 +46,8 @@ No prewritten response may be presented as live AI inference. Question banks, ru
 | Application | Next.js App Router, TypeScript, React | One repository and fast UI development. |
 | Rendering | Server Components for the initial course and educator pages; Client Components for interactive forms | Keep the initial page server-rendered while the attempt flow stays responsive. |
 | Server API | Next.js Route Handlers | Server-side keys, input validation, and one deployment process. |
-| Decision model | Jev API, called from a server-side adapter | Typed choices over a small reasoning rubric. |
-| Teaching feedback | One available generative model API, called server-side | Jev does not generate an explanation. The feedback model receives only the relevant course material. |
+| Decision model | Jev through OpenRouter's Decisions API, called from a server-side adapter | Typed choices over a small reasoning rubric. |
+| Teaching feedback | DeepSeek V4.1 Flash through OpenRouter, called server-side | Jev does not generate an explanation. The feedback model receives only the relevant course material. |
 | Data | Versioned local JSON course pack and synthetic cohort; browser `localStorage` for the current demo session | No database setup or real student data. |
 | Styling | Plain CSS or scaffolded Tailwind | Avoid an extra component-library setup during the build window. |
 | Python | FastAPI + Pydantic **only if** a tuned Laya checkpoint is ready | The live Jev and generative API path needs no Python process. |
@@ -144,7 +144,7 @@ type AnalyzeResponse = {
 
 `POST /api/verify` accepts `attemptId`, `nextQuestionId`, `answer`, and `explanation`. It returns `status` (`verified`, `needsPractice`, or `educatorReview`) and a short reason. The browser appends the result to its local session; there is no server-side student database.
 
-The future `attemptId` is an opaque signed token binding the course-pack version, original question, assigned verification question, and local session ID, with a two-hour expiry. Include no student responses or assessment keys. Invalid, expired, or mismatched tokens receive HTTP 400. Signing and endpoint implementations belong to later milestones.
+Analyze returns `attemptId` as an opaque signed token binding the course-pack version, original question, assigned verification question, and local session ID, with a two-hour expiry. Include no student responses or assessment keys. The future verify handler must reject invalid, expired, or mismatched tokens with HTTP 400. Signing and the analyze endpoint are implemented; verification remains a later milestone.
 
 When evidence is insufficient or contradictory enough to prevent a defensible diagnosis, return `reviewRequired: true`, `feedback: null`, and `nextQuestion: null`. The UI requests clarification or educator review before advancing.
 
