@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { PublicCourse, AnalyzeResponse } from "@/lib/contracts";
-import { supportedDiagnosis, uncertainty } from "@/tests/fixtures/learner-contracts";
+import type { PublicCourse, AnalyzeResponse, ApiError } from "@/lib/contracts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -15,6 +14,7 @@ export default function LearnerFlow({ course }: { course: PublicCourse }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [analyzeResponse, setAnalyzeResponse] = useState<AnalyzeResponse | null>(null);
+  const [localSessionId, setLocalSessionId] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -23,41 +23,55 @@ export default function LearnerFlow({ course }: { course: PublicCourse }) {
       sid = crypto.randomUUID();
       localStorage.setItem("nervon_demo_session_id", sid);
     }
-    // Set it in local storage, but since we mock the API, we don't need to keep it in React state anymore
+    // The session ID is read from a browser-only API after hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLocalSessionId(sid);
   }, []);
 
   const selectedConcept = course.concepts.find((c) => c.id === selectedConceptId);
   const initialQuestion = selectedConcept?.questions[0];
 
   const handleInitialSubmit = async (answer: string, explanation: string) => {
-    if (!selectedConcept || !initialQuestion) return;
+    if (!selectedConcept || !initialQuestion || !localSessionId) {
+      setApiError("Your demo session is still starting. Please try again in a moment.");
+      return;
+    }
     
     setIsSubmitting(true);
     setApiError(null);
     setAnalyzeResponse(null);
 
-    // Simulated API response logic
-    setTimeout(() => {
-      // Mock logic: if explanation is very short, show uncertainty, else show supportedDiagnosis
-      if (explanation.trim().length < 15) {
-        setAnalyzeResponse(uncertainty as AnalyzeResponse);
-      } else {
-        // Adjust the mock response to match the actual chosen concept
-        const mockResponse: AnalyzeResponse = {
-          ...supportedDiagnosis,
-          conceptId: selectedConcept.id,
-        } as AnalyzeResponse;
-        
-        if (mockResponse.nextQuestion && !mockResponse.diagnosis.reviewRequired) {
-             const nextQ = selectedConcept.questions.find(q => q.id !== initialQuestion.id);
-             if (nextQ) {
-               mockResponse.nextQuestion = nextQ;
-             }
+    try {
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          courseId: course.courseId,
+          questionId: initialQuestion.id,
+          answer,
+          explanation,
+          localSessionId,
+        }),
+      });
+
+      if (!response.ok) {
+        let message = "The analysis service is unavailable. No live inference was returned.";
+        try {
+          const error = (await response.json()) as ApiError;
+          if (error.error?.message) message = error.error.message;
+        } catch {
+          // Keep the disclosed unavailable message when the response is not JSON.
         }
-        setAnalyzeResponse(mockResponse);
+        setApiError(message);
+        return;
       }
+
+      setAnalyzeResponse((await response.json()) as AnalyzeResponse);
+    } catch {
+      setApiError("The analysis service is unavailable. Check the connection and try again.");
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   const handleNextQuestionSubmit = (answer: string, explanation: string) => {
@@ -74,21 +88,24 @@ export default function LearnerFlow({ course }: { course: PublicCourse }) {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           {course.concepts.map((concept) => (
-            <Card 
+            <button
               key={concept.id}
-              className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group"
+              type="button"
+              className="w-full rounded-xl text-left focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
               onClick={() => setSelectedConceptId(concept.id)}
             >
-              <CardHeader>
-                <CardTitle className="text-xl flex items-center justify-between group-hover:text-primary transition-colors">
-                  {concept.title}
-                  <ChevronRight className="h-5 w-5 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground line-clamp-2">{concept.learningObjective}</p>
-              </CardContent>
-            </Card>
+              <Card className="cursor-pointer transition-all hover:border-primary/50 hover:shadow-md group">
+                <CardHeader>
+                  <CardTitle className="text-xl flex items-center justify-between group-hover:text-primary transition-colors">
+                    {concept.title}
+                    <ChevronRight className="h-5 w-5 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground line-clamp-2">{concept.learningObjective}</p>
+                </CardContent>
+              </Card>
+            </button>
           ))}
         </div>
       </div>
@@ -149,6 +166,7 @@ export default function LearnerFlow({ course }: { course: PublicCourse }) {
           <FeedbackPanel 
             isLoading={isSubmitting} 
             response={analyzeResponse} 
+            sources={selectedConcept?.sources ?? []}
           />
 
           {analyzeResponse && analyzeResponse.diagnosis.reviewRequired && (

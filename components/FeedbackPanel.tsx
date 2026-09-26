@@ -1,13 +1,14 @@
-import type { AnalyzeResponse } from "@/lib/contracts";
+import type { AnalyzeResponse, PublicSource } from "@/lib/contracts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Info, BookOpen } from "lucide-react";
+import { Loader2, BookOpen } from "lucide-react";
 
 interface FeedbackPanelProps {
   isLoading: boolean;
   response: AnalyzeResponse | null;
+  sources: PublicSource[];
 }
 
-export default function FeedbackPanel({ isLoading, response }: FeedbackPanelProps) {
+export default function FeedbackPanel({ isLoading, response, sources }: FeedbackPanelProps) {
   if (isLoading) {
     return (
       <Card className="shadow-md h-full min-h-[250px] flex items-center justify-center border-dashed">
@@ -20,14 +21,7 @@ export default function FeedbackPanel({ isLoading, response }: FeedbackPanelProp
   }
 
   if (!response) {
-    return (
-      <Card className="shadow-sm h-full min-h-[250px] flex items-center justify-center border-dashed bg-muted/20">
-        <div className="text-muted-foreground text-sm italic flex flex-col items-center gap-2">
-          <Info className="h-6 w-6 opacity-50" />
-          <span>Submit your answer to see feedback.</span>
-        </div>
-      </Card>
-    );
+    return null;
   }
 
   const { diagnosis, feedback } = response;
@@ -38,7 +32,7 @@ export default function FeedbackPanel({ isLoading, response }: FeedbackPanelProp
         <CardTitle className="text-xl text-primary flex items-center gap-2">
           Nervon Coach
           <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full font-medium tracking-wide">
-            Synthetic UI fixture
+            Live response, pending review
           </span>
         </CardTitle>
       </CardHeader>
@@ -59,9 +53,19 @@ export default function FeedbackPanel({ isLoading, response }: FeedbackPanelProp
           <div className="text-sm bg-blue-50/50 p-4 rounded-lg border border-blue-100 shadow-inner">
             <p className="leading-relaxed"><strong className="text-blue-900">Feedback:</strong> {feedback.text}</p>
             {feedback.sourceIds && feedback.sourceIds.length > 0 && (
-              <div className="mt-3 flex items-center gap-1.5 text-xs text-blue-700 bg-blue-100/50 w-fit px-2 py-1 rounded">
+              <div className="mt-3 flex flex-col gap-2 text-xs text-blue-700 bg-blue-100/50 w-fit px-2 py-2 rounded">
                 <BookOpen className="h-3.5 w-3.5" />
-                <span className="font-medium">Source Attribution: {feedback.sourceIds.join(", ")}</span>
+                <span className="font-medium">Source attribution</span>
+                {feedback.sourceIds.map((sourceId) => {
+                  const source = sources.find((candidate) => candidate.id === sourceId);
+                  return source ? (
+                    <a key={source.id} href={source.url} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+                      {source.title} ({source.id})
+                    </a>
+                  ) : (
+                    <span key={sourceId}>{sourceId} (unrecognized source)</span>
+                  );
+                })}
               </div>
             )}
           </div>

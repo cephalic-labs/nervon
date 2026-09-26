@@ -13,7 +13,7 @@ export default function EducatorSummary({ course }: { course: PublicCourse }) {
               Cohort Summary
             </span>
             <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full font-medium tracking-wide">
-              Pending Review
+              Synthetic - Pending Review
             </span>
           </CardTitle>
           <CardDescription>

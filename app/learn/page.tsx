@@ -18,6 +18,7 @@ export default function LearnPage() {
             <div className="flex flex-col">
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">Nervon Coach</h1>
               <p className="text-sm font-medium text-slate-500">Course: {course.title}</p>
+              <p className="text-xs text-amber-700">Synthetic demo course - pending educator review</p>
             </div>
           </div>
           <Link href="/" className={buttonVariants({ variant: "ghost", className: "text-slate-600 hover:text-slate-900" })}>
@@ -27,6 +28,9 @@ export default function LearnPage() {
         </header>
 
         <main className="w-full">
+          <p className="mb-6 text-sm text-amber-700">
+            Demo session: synthetic browser session - pending educator review.
+          </p>
           <LearnerFlow course={course} />
         </main>
       </div>

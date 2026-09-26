@@ -18,10 +18,16 @@ interface AttemptFormProps {
 export default function AttemptForm({ onSubmit, isSubmitting, disabled, buttonText = "Submit" }: AttemptFormProps) {
   const [answer, setAnswer] = useState("");
   const [explanation, setExplanation] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!answer.trim() || !explanation.trim() || disabled || isSubmitting) return;
+    if (disabled || isSubmitting) return;
+    if (!answer.trim() || !explanation.trim()) {
+      setValidationError("Enter an answer and explain your reasoning before submitting.");
+      return;
+    }
+    setValidationError(null);
     onSubmit(answer, explanation);
   };
 
@@ -39,6 +45,7 @@ export default function AttemptForm({ onSubmit, isSubmitting, disabled, buttonTe
               type="text" 
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
+              maxLength={2000}
               placeholder="Enter your concise answer..."
               disabled={disabled || isSubmitting}
               required
@@ -51,6 +58,7 @@ export default function AttemptForm({ onSubmit, isSubmitting, disabled, buttonTe
               id="explanation"
               value={explanation}
               onChange={(e) => setExplanation(e.target.value)}
+              maxLength={4000}
               placeholder="Explain your reasoning step by step..."
               disabled={disabled || isSubmitting}
               required
@@ -65,6 +73,7 @@ export default function AttemptForm({ onSubmit, isSubmitting, disabled, buttonTe
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isSubmitting ? "Submitting..." : buttonText}
           </Button>
+          {validationError && <p className="text-sm text-destructive" role="alert">{validationError}</p>}
         </form>
       </CardContent>
     </Card>
