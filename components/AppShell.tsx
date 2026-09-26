@@ -6,7 +6,7 @@ export default function AppShell({
   active,
   children,
 }: {
-  active: "course" | "learn" | "educator";
+  active: "course" | "learn" | "progress";
   children: React.ReactNode;
 }) {
   return (
@@ -37,7 +37,7 @@ export default function AppShell({
               [
                 ["course", "/", "Course"],
                 ["learn", "/learn", "Practice"],
-                ["educator", "/educator", "Educator"],
+                ["progress", "/progress", "Progress"],
               ] as const
             ).map(([id, href, label]) => (
               <Link
@@ -61,7 +61,7 @@ export default function AppShell({
             <Badge variant="outline" className="mr-2">
               Synthetic demo
             </Badge>
-            Course content and AI hypotheses are pending educator review.
+            Learning content and AI assessments are not independently validated.
           </p>
           <Link
             href="/demo"

@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Nervon — Classical Genetics Learning Coach",
-  description: "Submit an explained answer and receive a possible concept diagnosis, source-grounded feedback, and a follow-up question. Synthetic content, pending educator review.",
+  description: "Submit an explained answer and receive a possible concept diagnosis, source-grounded feedback, and a follow-up question. Self-guided diagnostic conversations, grounded teaching and follow-up practice. Synthetic, unvalidated content.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

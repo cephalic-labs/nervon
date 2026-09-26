@@ -32,10 +32,10 @@ export default function CourseEntry() {
               Start practising <ArrowRight />
             </Link>
             <Link
-              href="/educator"
+              href="/progress"
               className={buttonVariants({ variant: "outline", size: "lg" })}
             >
-              Explore educator view
+              View learning progress
             </Link>
           </div>
           <p className="mt-5 text-xs text-muted-foreground">
@@ -91,8 +91,8 @@ export default function CourseEntry() {
             })}
           </ol>
           <p className="mt-8 border-t border-primary/15 pt-4 text-xs leading-5 text-muted-foreground">
-            Not enough evidence? Nervon asks for clarification or educator
-            review instead of guessing.
+            Not enough evidence? Nervon asks a focused question, then guides you
+            through the fundamentals.
           </p>
         </section>
       </div>
