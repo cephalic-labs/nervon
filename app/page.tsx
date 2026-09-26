@@ -1,21 +1,31 @@
 import Link from "next/link";
+import { getPublicCourse } from "@/lib/course";
 
 export default function CourseEntry() {
+  const course = getPublicCourse("classical-genetics");
+
   return (
     <div className="max-w-4xl mx-auto p-8 flex flex-col gap-6">
       <header className="border-b pb-4">
-        <h1 className="text-3xl font-bold">Introductory Statistics</h1>
+        <h1 className="text-3xl font-bold">{course.title}</h1>
         <p className="text-gray-600 mt-2">Welcome to your university learning coach, Nervon.</p>
+        <p className="text-sm mt-2 font-medium text-amber-700 bg-amber-50 p-2 inline-block rounded">
+          {course.reviewStatus === "pending-educator-review" ? "Pending Educator Review (Synthetic UI fixture — not live AI)" : ""}
+        </p>
       </header>
 
       <main className="flex flex-col gap-4">
         <section>
-          <h2 className="text-xl font-semibold mb-2">Course Modules</h2>
+          <h2 className="text-xl font-semibold mb-2">Course Concepts</h2>
           <ul className="list-disc pl-5 flex flex-col gap-2">
-            <li>Correlation versus causation</li>
-            <li>Sampling bias</li>
-            <li>Mean versus median</li>
+            {course.concepts.map((concept) => (
+              <li key={concept.id}>{concept.title}</li>
+            ))}
           </ul>
+        </section>
+
+        <section className="text-sm text-gray-500 bg-gray-50 p-4 rounded-md">
+          <p><strong>Disclosure:</strong> {course.disclosure}</p>
         </section>
 
         <div className="flex gap-4 mt-4">
