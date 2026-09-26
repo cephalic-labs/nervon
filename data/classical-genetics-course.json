@@ -1,0 +1,301 @@
+{
+  "schemaVersion": 1,
+  "version": "1.0.0",
+  "courseId": "classical-genetics",
+  "title": "Classical Genetics (Biology)",
+  "disclosure": "Synthetic, challenge-authored demo course and questions; no real student data. Pending educator review.",
+  "reviewStatus": "pending-educator-review",
+  "concepts": [
+    {
+      "id": "genotype-phenotype",
+      "title": "Genotype, phenotype, and dominance",
+      "learningObjective": "Distinguish observable traits from allele combinations and explain why a dominant phenotype does not uniquely determine genotype.",
+      "sources": [
+        {
+          "id": "genotype-phenotype-source",
+          "text": "Genotype describes an allele combination; phenotype describes an expressed trait. Under complete dominance, both PP and Pp show the dominant trait. A recessive allele may remain in a heterozygote even when its trait is not expressed.",
+          "title": "OpenStax Biology 2e — 12.2 Characteristics and Traits",
+          "url": "https://openstax.org/books/biology-2e/pages/12-2-characteristics-and-traits",
+          "attribution": "Original demo summary informed by Biology 2e, OpenStax, Rice University; not a textbook quotation.",
+          "license": "Referenced textbook: CC BY-NC-SA 4.0 (verify terms before reuse beyond this demo).",
+          "licenseUrl": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+          "reviewStatus": "pending-educator-review"
+        }
+      ],
+      "questions": [
+        {
+          "id": "genotype-phenotype-1",
+          "prompt": "In a synthetic diploid plant model, P gives purple flowers and p gives white flowers, with complete dominance. A plant has purple flowers. Can appearance alone distinguish PP from Pp? Give the possible genotypes and explain.",
+          "sourceIds": [
+            "genotype-phenotype-source"
+          ],
+          "referenceAnswer": "No. The plant could be PP or Pp; either expresses purple flowers under complete dominance. Appearance alone does not distinguish them.",
+          "requiredReasoning": [
+            "Identify both PP and Pp as possible.",
+            "Explain that P masks the recessive phenotype in a heterozygote without removing p."
+          ],
+          "diagnosticRubric": [
+            {
+              "label": "dominant-means-homozygous",
+              "criteria": "Claims purple flowers prove PP or excludes Pp solely because purple is dominant."
+            },
+            {
+              "label": "recessive-allele-disappears",
+              "criteria": "Claims p is eliminated or cannot be present when the dominant phenotype is visible."
+            },
+            {
+              "label": "sound-reasoning",
+              "criteria": "Explains the required reasoning points without a conflicting claim; an answer alone is insufficient."
+            },
+            {
+              "label": "unrelated-reasoning",
+              "criteria": "The explanation does not address the inheritance mechanism asked about."
+            },
+            {
+              "label": "insufficient-evidence",
+              "criteria": "The explanation is missing, ambiguous, contradictory, or too brief to identify a reasoning pattern. Request clarification or educator review."
+            }
+          ],
+          "verificationRubric": {
+            "verified": "The answer is correct and the explanation supports all required reasoning points without a contradiction. Accept equivalent notation and wording.",
+            "needsPractice": "Enough relevant reasoning is present to identify a concept error, even if the final answer happens to be correct.",
+            "educatorReview": "Reasoning is insufficient, unrelated, ambiguous, or contradictory enough that no defensible assessment can be made."
+          }
+        },
+        {
+          "id": "genotype-phenotype-2",
+          "prompt": "In a different synthetic diploid plant model, R gives red flowers and r gives white flowers, with complete dominance. A plant has red flowers. Which genotypes are possible, and could it still carry r? Explain.",
+          "sourceIds": [
+            "genotype-phenotype-source"
+          ],
+          "referenceAnswer": "RR and Rr are possible. It could carry r if it is Rr; complete dominance allows red flowers despite the recessive allele.",
+          "requiredReasoning": [
+            "Identify RR and Rr as possible.",
+            "Explain why r can be present in Rr despite red flowers."
+          ],
+          "diagnosticRubric": [
+            {
+              "label": "dominant-means-homozygous",
+              "criteria": "Claims red flowers imply RR only."
+            },
+            {
+              "label": "recessive-allele-disappears",
+              "criteria": "Claims a red-flowered plant cannot contain r because R is dominant."
+            },
+            {
+              "label": "sound-reasoning",
+              "criteria": "Explains the required reasoning points without a conflicting claim; an answer alone is insufficient."
+            },
+            {
+              "label": "unrelated-reasoning",
+              "criteria": "The explanation does not address the inheritance mechanism asked about."
+            },
+            {
+              "label": "insufficient-evidence",
+              "criteria": "The explanation is missing, ambiguous, contradictory, or too brief to identify a reasoning pattern. Request clarification or educator review."
+            }
+          ],
+          "verificationRubric": {
+            "verified": "The answer is correct and the explanation supports all required reasoning points without a contradiction. Accept equivalent notation and wording.",
+            "needsPractice": "Enough relevant reasoning is present to identify a concept error, even if the final answer happens to be correct.",
+            "educatorReview": "Reasoning is insufficient, unrelated, ambiguous, or contradictory enough that no defensible assessment can be made."
+          }
+        }
+      ]
+    },
+    {
+      "id": "segregation",
+      "title": "Mendel's law of segregation and monohybrid crosses",
+      "learningObjective": "Explain segregation into gametes and use allele contributions to predict monohybrid genotype and phenotype probabilities.",
+      "sources": [
+        {
+          "id": "segregation-source",
+          "text": "During gamete formation, the two alleles at a locus separate: a Tt parent produces T or t gametes with equal probability. Combining one gamete from each Tt parent gives expected genotype probabilities of one quarter TT, one half Tt, and one quarter tt. These probabilities need not match a small offspring sample exactly.",
+          "title": "OpenStax Biology 2e — 12.3 Laws of Inheritance",
+          "url": "https://openstax.org/books/biology-2e/pages/12-3-laws-of-inheritance",
+          "attribution": "Original demo summary informed by Biology 2e, OpenStax, Rice University; not a textbook quotation.",
+          "license": "Referenced textbook: CC BY-NC-SA 4.0 (verify terms before reuse beyond this demo).",
+          "licenseUrl": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+          "reviewStatus": "pending-educator-review"
+        }
+      ],
+      "questions": [
+        {
+          "id": "segregation-1",
+          "prompt": "In a synthetic diploid plant model, T gives tall plants and t gives short plants, with complete dominance and equal gamete probabilities. For Tt × Tt, what are the expected offspring genotype probabilities? Explain how each parent forms gametes.",
+          "sourceIds": [
+            "segregation-source"
+          ],
+          "referenceAnswer": "TT: 1/4; Tt: 1/2; tt: 1/4. Each parent contributes T or t with probability 1/2; the two ways to obtain Tt combine to probability 1/2.",
+          "requiredReasoning": [
+            "Each gamete carries one allele, T or t, each with probability 1/2.",
+            "Combine parental gametes to obtain TT 1/4, Tt 1/2, tt 1/4."
+          ],
+          "diagnosticRubric": [
+            {
+              "label": "gametes-retain-both-alleles",
+              "criteria": "Claims each gamete carries Tt instead of one allele at the locus."
+            },
+            {
+              "label": "genotype-phenotype-ratio-confusion",
+              "criteria": "Uses the 3:1 phenotype ratio as the genotype ratio or treats all three genotypes as equally probable."
+            },
+            {
+              "label": "sound-reasoning",
+              "criteria": "Explains the required reasoning points without a conflicting claim; an answer alone is insufficient."
+            },
+            {
+              "label": "unrelated-reasoning",
+              "criteria": "The explanation does not address the inheritance mechanism asked about."
+            },
+            {
+              "label": "insufficient-evidence",
+              "criteria": "The explanation is missing, ambiguous, contradictory, or too brief to identify a reasoning pattern. Request clarification or educator review."
+            }
+          ],
+          "verificationRubric": {
+            "verified": "The answer is correct and the explanation supports all required reasoning points without a contradiction. Accept equivalent notation and wording.",
+            "needsPractice": "Enough relevant reasoning is present to identify a concept error, even if the final answer happens to be correct.",
+            "educatorReview": "Reasoning is insufficient, unrelated, ambiguous, or contradictory enough that no defensible assessment can be made."
+          }
+        },
+        {
+          "id": "segregation-2",
+          "prompt": "In a different synthetic diploid plant model, B gives brown seeds and b gives pale seeds, with complete dominance and equal gamete probabilities. For Bb × bb, predict offspring genotype and phenotype probabilities. Explain each parent’s allele contributions.",
+          "sourceIds": [
+            "segregation-source"
+          ],
+          "referenceAnswer": "Bb: 1/2 and bb: 1/2; brown: 1/2 and pale: 1/2. The Bb parent contributes B or b equally, and the bb parent always contributes b.",
+          "requiredReasoning": [
+            "Bb gametes carry B or b equally; bb gametes carry b only.",
+            "Combine to obtain Bb and bb equally, with brown and pale phenotypes respectively."
+          ],
+          "diagnosticRubric": [
+            {
+              "label": "gametes-retain-both-alleles",
+              "criteria": "Claims a gamete carries Bb or bb instead of one allele."
+            },
+            {
+              "label": "memorized-cross-ratio",
+              "criteria": "Applies a 3:1 phenotype ratio without accounting for the homozygous recessive parent."
+            },
+            {
+              "label": "sound-reasoning",
+              "criteria": "Explains the required reasoning points without a conflicting claim; an answer alone is insufficient."
+            },
+            {
+              "label": "unrelated-reasoning",
+              "criteria": "The explanation does not address the inheritance mechanism asked about."
+            },
+            {
+              "label": "insufficient-evidence",
+              "criteria": "The explanation is missing, ambiguous, contradictory, or too brief to identify a reasoning pattern. Request clarification or educator review."
+            }
+          ],
+          "verificationRubric": {
+            "verified": "The answer is correct and the explanation supports all required reasoning points without a contradiction. Accept equivalent notation and wording.",
+            "needsPractice": "Enough relevant reasoning is present to identify a concept error, even if the final answer happens to be correct.",
+            "educatorReview": "Reasoning is insufficient, unrelated, ambiguous, or contradictory enough that no defensible assessment can be made."
+          }
+        }
+      ]
+    },
+    {
+      "id": "independent-assortment",
+      "title": "Mendel's law of independent assortment for unlinked genes",
+      "learningObjective": "Predict gametes and dihybrid outcomes when genes are unlinked, explaining independent allele combinations.",
+      "sources": [
+        {
+          "id": "independent-assortment-source",
+          "text": "For unlinked loci with equal segregation probabilities, choosing an allele at one locus is independent of choosing an allele at the other. AaBb can therefore form AB, Ab, aB, and ab gametes, each with probability one quarter. These assumptions do not justify treating all linked genes as independent.",
+          "title": "OpenStax Biology 2e — 12.3 Laws of Inheritance",
+          "url": "https://openstax.org/books/biology-2e/pages/12-3-laws-of-inheritance",
+          "attribution": "Original demo summary informed by Biology 2e, OpenStax, Rice University; not a textbook quotation.",
+          "license": "Referenced textbook: CC BY-NC-SA 4.0 (verify terms before reuse beyond this demo).",
+          "licenseUrl": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+          "reviewStatus": "pending-educator-review"
+        }
+      ],
+      "questions": [
+        {
+          "id": "independent-assortment-1",
+          "prompt": "In a synthetic diploid organism, loci A/a and B/b are unlinked and segregate equally. Which gametes can AaBb produce, and what is the expected probability of each? Explain why.",
+          "sourceIds": [
+            "independent-assortment-source"
+          ],
+          "referenceAnswer": "AB, Ab, aB, and ab, each with probability 1/4. Each gamete gets one allele per locus; independent choices each with probability 1/2 combine to 1/4.",
+          "requiredReasoning": [
+            "List all four gametes, each containing one allele per locus.",
+            "Explain independent segregation and multiply 1/2 by 1/2 for each combination."
+          ],
+          "diagnosticRubric": [
+            {
+              "label": "alleles-must-travel-together",
+              "criteria": "Restricts gametes to AB and ab because the uppercase or lowercase alleles must remain together."
+            },
+            {
+              "label": "gametes-retain-both-alleles",
+              "criteria": "Places both alleles of either locus in one gamete."
+            },
+            {
+              "label": "sound-reasoning",
+              "criteria": "Explains the required reasoning points without a conflicting claim; an answer alone is insufficient."
+            },
+            {
+              "label": "unrelated-reasoning",
+              "criteria": "The explanation does not address the inheritance mechanism asked about."
+            },
+            {
+              "label": "insufficient-evidence",
+              "criteria": "The explanation is missing, ambiguous, contradictory, or too brief to identify a reasoning pattern. Request clarification or educator review."
+            }
+          ],
+          "verificationRubric": {
+            "verified": "The answer is correct and the explanation supports all required reasoning points without a contradiction. Accept equivalent notation and wording.",
+            "needsPractice": "Enough relevant reasoning is present to identify a concept error, even if the final answer happens to be correct.",
+            "educatorReview": "Reasoning is insufficient, unrelated, ambiguous, or contradictory enough that no defensible assessment can be made."
+          }
+        },
+        {
+          "id": "independent-assortment-2",
+          "prompt": "In a different synthetic diploid plant model, R gives round seeds (r gives wrinkled) and Y gives yellow seeds (y gives green), with complete dominance at both unlinked loci and equal segregation probabilities. For RrYy × rryy, predict offspring phenotype probabilities and explain.",
+          "sourceIds": [
+            "independent-assortment-source"
+          ],
+          "referenceAnswer": "Round yellow, round green, wrinkled yellow, and wrinkled green each have probability 1/4. RrYy produces RY, Ry, rY, ry equally; rryy produces ry only. The offspring are RrYy, Rryy, rrYy, rryy equally.",
+          "requiredReasoning": [
+            "Explain the four equally likely RrYy gametes and the ry-only gametes from rryy.",
+            "Map each combined genotype to one of the four phenotypes, each with probability 1/4."
+          ],
+          "diagnosticRubric": [
+            {
+              "label": "alleles-must-travel-together",
+              "criteria": "Predicts only round yellow and wrinkled green because unlinked alleles must travel together."
+            },
+            {
+              "label": "memorized-dihybrid-ratio",
+              "criteria": "Applies 9:3:3:1 to this test cross without considering rryy gametes."
+            },
+            {
+              "label": "sound-reasoning",
+              "criteria": "Explains the required reasoning points without a conflicting claim; an answer alone is insufficient."
+            },
+            {
+              "label": "unrelated-reasoning",
+              "criteria": "The explanation does not address the inheritance mechanism asked about."
+            },
+            {
+              "label": "insufficient-evidence",
+              "criteria": "The explanation is missing, ambiguous, contradictory, or too brief to identify a reasoning pattern. Request clarification or educator review."
+            }
+          ],
+          "verificationRubric": {
+            "verified": "The answer is correct and the explanation supports all required reasoning points without a contradiction. Accept equivalent notation and wording.",
+            "needsPractice": "Enough relevant reasoning is present to identify a concept error, even if the final answer happens to be correct.",
+            "educatorReview": "Reasoning is insufficient, unrelated, ambiguous, or contradictory enough that no defensible assessment can be made."
+          }
+        }
+      ]
+    }
+  ]
+}
