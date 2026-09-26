@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import type { PublicCourse, AnalyzeResponse, ApiError, VerifyResponse } from "@/lib/contracts";
-import { verified } from "@/tests/fixtures/learner-contracts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -93,14 +92,48 @@ export default function LearnerFlow({ course }: { course: PublicCourse }) {
     }
   };
 
-  const handleNextQuestionSubmit = () => {
+  const handleNextQuestionSubmit = async (answer: string, explanation: string) => {
+    if (!analyzeResponse?.attemptId || !analyzeResponse.nextQuestion) {
+      setApiError("Verification requires a valid previous attempt.");
+      return;
+    }
+    
     setIsVerifying(true);
-    // Mock /api/verify for demo completion
-    setTimeout(() => {
-      setVerifyResponse(verified as VerifyResponse);
+    setApiError(null);
+    setVerifyResponse(null);
+
+    try {
+      const response = await fetch("/api/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          attemptId: analyzeResponse.attemptId,
+          nextQuestionId: analyzeResponse.nextQuestion.id,
+          answer,
+          explanation,
+        }),
+      });
+
+      if (!response.ok) {
+        let message = "The verification service is unavailable.";
+        try {
+          const error = (await response.json()) as ApiError;
+          if (error.error?.message) message = error.error.message;
+        } catch {
+          // Keep default message
+        }
+        setApiError(message);
+        return;
+      }
+
+      setVerifyResponse((await response.json()) as VerifyResponse);
+    } catch {
+      setApiError("The verification service is unavailable. Check the connection and try again.");
+    } finally {
       setIsVerifying(false);
-    }, 1500);
+    }
   };
+
 
   if (!selectedConceptId) {
     return (
