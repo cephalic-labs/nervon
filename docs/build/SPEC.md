@@ -49,7 +49,7 @@ No prewritten response may be presented as live AI inference. Question banks, ru
 | Decision model | Jev through OpenRouter's Decisions API, called from a server-side adapter | Typed choices over a small reasoning rubric. |
 | Teaching feedback | DeepSeek V4.1 Flash through OpenRouter, called server-side | Jev does not generate an explanation. The feedback model receives only the relevant course material. |
 | Data | Versioned local JSON course pack and synthetic cohort; browser `localStorage` for the current demo session | No database setup or real student data. |
-| Styling | Plain CSS or scaffolded Tailwind | Avoid an extra component-library setup during the build window. |
+| Styling | Tailwind and shadcn Base UI components | Responsive, accessible forms and consistent learning screens. |
 | Python | FastAPI + Pydantic **only if** a tuned Laya checkpoint is ready | The live Jev and generative API path needs no Python process. |
 
 The Next.js server reads the private course pack. It exposes question prompts and public source snippets to the browser but keeps answer keys and API keys server-side. **Nervon is the event prototype name**; the day-two Aorta venture deck has a separate purpose.
@@ -194,15 +194,15 @@ Give coding agents non-overlapping files and one integration owner. An optional 
 
 ## 9. Demo acceptance gate
 
-- [ ] Two distinct free-text explanations cause meaningfully different live diagnoses or an honest uncertainty state.
+- [x] Two distinct free-text explanations cause meaningfully different live diagnoses or an honest uncertainty state.
 - [ ] A fresh judge-written response triggers a real model request.
-- [ ] Feedback cites a source ID that exists in the course pack.
-- [ ] The student receives a *different* question testing the same concept.
-- [ ] The second attempt changes the current session and educator view.
-- [ ] Errors are visible; secrets and answer keys stay server-side.
-- [ ] All student and cohort data are synthetic and visibly labelled.
+- [x] Feedback cites a source ID that exists in the course pack.
+- [x] The student receives a *different* question testing the same concept.
+- [x] The second attempt changes the current session and educator view.
+- [x] Errors are visible; secrets and answer keys stay server-side.
+- [x] All student and cohort data are synthetic and visibly labelled.
 - [ ] The repo contains only eligible code and includes setup steps and attributions.
-- [ ] Exactly one slide frames the chosen problem, solution loop, synthetic-data assumption, and next validation step.
+- [x] Exactly one slide frames the chosen problem, solution loop, synthetic-data assumption, and next validation step.
 
 ## 10. One-slide framing
 
@@ -217,3 +217,18 @@ Give coding agents non-overlapping files and one integration owner. An optional 
 - [Next.js Server and Client Components](https://nextjs.org/docs/app/getting-started/server-and-client-components) and [Route Handlers](https://nextjs.org/docs/app/getting-started/route-handlers).
 - [TypeSafe System One API](https://api.typesafe.ai/docs).
 - [Laya repository and fine-tuning guide](https://github.com/NandhaKishorM/laya).
+
+
+## Implementation status — 26 September 2026
+
+Both owners’ technical milestones are implemented: course pack and safe projection,
+live analyze and verification, strict attempt binding, responsive learner flow,
+persistent browser session, separate synthetic cohort, educator history, and
+visible review/error states. The one-slide PDF and seven-minute presenter runbook
+are in [docs/demo/REHEARSAL.md](../demo/REHEARSAL.md). Automated and live acceptance
+results are recorded there. The optional Laya experiment is not part of this release.
+
+The fresh-input path was exercised with newly authored synthetic browser input;
+a judge’s actual response and the human rehearsal occur at the event. Uploading
+code still requires the team’s event destination; no remote push or upload was
+performed. Content review and educational validation remain future pilot work.

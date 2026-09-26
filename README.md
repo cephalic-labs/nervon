@@ -7,16 +7,18 @@ different question → verification → a local session and educator summary.
 
 ## Current milestone
 
-Implemented: versioned course pack with three Classical Genetics concepts and six
-questions, question-specific rubrics and verification keys, attributed snippets,
-shared API types, a server-only course reader, safe public projections,
-`/api/analyze` (Jev + generative adapters, input validation, grounded feedback,
-signed attempt tokens), `/api/verify` (token signature check, generative rubric
-assessment), and development tests.
+The Day 1 implementation is complete locally: six Classical Genetics questions,
+private keys and rubrics, live `/api/analyze` and `/api/verify`, strict signed
+attempt binding, responsive shadcn learner screens, persistent browser history,
+and an educator view with live results separate from a fixed synthetic cohort.
+Feedback and checks survive navigation and reload. Unsubmitted form text does not.
+Browser storage keeps at most 50 attempts and can be reset from Educator.
 
-Synthetic cohort data and Laya integration remain outside the critical demo path.
-The latest live synthetic smoke run passed all six examples; this verifies
-integration, not educational accuracy.
+Open `/demo` for the editable one-slide presentation, or use the
+[one-page PDF](docs/demo/nervon-day-1.pdf). The
+[seven-minute runbook and acceptance results](docs/demo/REHEARSAL.md) cover the
+handoff. Publishing/upload and the human presentation remain team actions; no
+remote push was made. Laya is optional and remains outside this milestone.
 
 ## Local setup
 
@@ -31,7 +33,7 @@ npm run dev
 
 Open [localhost:3000](http://localhost:3000). The current screens render without
 credentials, but analyze requires both the OpenRouter key and signing secret.
-Populate these server-only values before calling analyze; never prefix secrets
+Populate these server-only values before calling either endpoint; never prefix secrets
 with `NEXT_PUBLIC_` or commit `.env.local`.
 
 - `OPENROUTER_API_KEY`: one server-only credential for both model adapters.
@@ -41,7 +43,7 @@ with `NEXT_PUBLIC_` or commit `.env.local`.
   There is no automatic generative-model switching.
 - `ATTEMPT_SIGNING_SECRET`: use at least 32 random bytes, encoded as hex or
   base64. The server rejects values shorter than 32 UTF-8 bytes after trimming.
-  Rotating it invalidates every outstanding attempt token, so unverified learners
+  Generate one with `openssl rand -hex 32`. Rotating it invalidates every outstanding attempt token, so unverified learners
   must restart from analyze.
 
 ## Checks
@@ -55,19 +57,31 @@ npm run lint
 npm run build
 ```
 
-Thirty offline tests cover the course foundation plus model transport, response
-validation, timeouts, request limits, fallback, review states, evidence quotations,
-source checks, signed token contents, privacy, and the whole verify path: signed
-attempt checks, request validation, rubric-driven verification, and every
-documented error code. The test-only module hook
-resolves `server-only` to
-Next's server marker and mirrors the `@/` alias; it does not change app behavior.
-A Node module-format warning
-may appear because the existing scaffold does not declare an ESM package type.
+Thirty-five offline tests cover course privacy and pairing, model validation,
+timeouts, fallback, request limits, signed-token validity, verification outcomes,
+session integrity and cohort consistency. TypeScript, lint and the production
+Turbopack build pass. Geist fonts require network access at build time.
 
-Validation at this milestone: tests, TypeScript, and lint passed with zero errors.
-The production build passed with Turbopack. The existing Geist font setup requires
-network access to Google Fonts during builds.
+For browser tests, start the app in a separate terminal, then run:
+
+```sh
+npx playwright install chromium
+npm run test:e2e
+```
+
+Eighteen Chromium tests cover desktop (1440px), phone (390px) and narrow phone
+(320px) layouts, keyboard entry, axe accessibility scans, the complete learner
+loop, reload/cross-tab state, reset, blocked storage, review and provider failures.
+These tests intercept API requests with labelled development fixtures and incur
+no model usage. The same suite passed against the production server. Screenshots
+and failure traces are in ignored `test-results/`.
+
+```sh
+npm run build
+npm start -- --port 3002
+# In another terminal:
+NERVON_SMOKE_BASE_URL=http://localhost:3002 npm run test:e2e
+```
 
 ## Explicit live acceptance check
 
@@ -76,13 +90,15 @@ app to load them. With the server running in another terminal:
 
 ```sh
 npm run smoke:analyze
+npm run smoke:journey
 ```
 
 Use `NERVON_SMOKE_BASE_URL=http://localhost:3001` for a different local port.
-This command makes real synthetic-data requests through `/api/analyze` and may
-incur OpenRouter charges. It is separate from `npm test`, which never calls live
-providers. Missing credentials yield exit code 2 and no requests; failed checks
-or diagnostic mismatches yield 1; passing checks yield 0.
+These commands make real synthetic-data requests through the local APIs and may
+incur OpenRouter charges. They are separate from `npm test` and `npm run test:e2e`, which never call live
+providers. For `smoke:analyze`, missing credentials yield exit code 2 and no requests;
+failed checks or diagnostic mismatches yield 1; passing checks yield 0. The browser
+journey requires Chromium and exits nonzero on a failed endpoint or UI assertion.
 
 Results include expected/actual labels, provider, review state, end-to-end latency,
 and request ID. Correlate request IDs with server logs for actual model IDs,
@@ -96,9 +112,12 @@ safe reason such as `TIMEOUT`, `HTTP_ERROR`, `INVALID_EVIDENCE`, or
 upstream error body. The public API keeps its safe `PROVIDER_FAILURE` response.
 
 The latest live smoke run passed all six examples using Jev and DeepSeek V4.1
-Flash. The faulty-reasoning example took about 27 seconds; a separate targeted
-reproduction timed out once and then passed. Provider latency remains variable.
-Space Bunny has not been tested and requires its own live check before selection.
+Flash (456–15,201ms). A fresh live browser journey also passed analyze → verify →
+educator persistence (3,533ms analyze; 1,823ms verify). Earlier testing observed a
+provider timeout, so latency remains variable. Space Bunny has not been tested.
+
+Export the single slide with `npm run slide:export`. This uses the running local
+server and Chromium and writes `docs/demo/nervon-day-1.pdf` (one 16:9 page).
 
 ## Integration handoff
 
@@ -145,7 +164,7 @@ blanket license for the repository. All content is **pending educator review**;
 do not describe it as university-approved material or validated diagnostic data.
 
 No private pre-challenge team code or real student records are included in this
-foundation. The scaffold uses public Next.js, React, TypeScript, and Tailwind
+foundation. The app uses public Next.js, React, TypeScript, Tailwind, shadcn/Base UI and Lucide
 packages; installed package licenses remain applicable. No LMS, registrar,
 payment, placement, or student-record integration exists.
 

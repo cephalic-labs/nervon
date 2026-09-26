@@ -60,11 +60,12 @@ not a real student identity or authentication mechanism.
 The verify handler validates payload shape, supported token version, timestamps, a
 timing-safe signature, expiry, and the submitted `nextQuestionId` matching the
 assigned ID. Review attempts with a null next question cannot be verified. Altered,
-expired, malformed, or mismatched tokens get HTTP 400. Still open: rejecting a
-token whose `coursePackVersion` no longer matches the pack, and re-checking
-same-concept pairing at verify time. Local verification is stateless and permits
-replay until expiry; the UI should replace a result for the same attempt rather
-than count repeated submissions as new learning. No server student database exists.
+expired, malformed, or mismatched tokens get HTTP 400. Tokens must match the current
+course-pack version and deterministic same-concept question pair. Future-issued
+tokens, unexpected payload fields, and lifetimes other than exactly 7,200 seconds
+are rejected; expiration is inclusive. Local verification is stateless and permits
+replay until expiry; the UI replaces a result for the same attempt instead of
+counting repeated submissions as new learning. No server student database exists.
 
 ## Boundary validation and errors
 
@@ -130,3 +131,24 @@ and [structured outputs](https://openrouter.ai/docs/guides/features/structured-o
 and reasoning examples. They are disconnected from app imports and are not
 prewritten live AI results. Use them to develop the UI and manually evaluate
 providers once live inference exists; they do not establish diagnostic accuracy.
+
+
+## Browser integration
+
+The responsive learner and educator screens share `nervon-session-v1` in
+localStorage. Up to 50 attempts retain public analysis responses and verification
+results; answers and full submitted explanations are not retained, though quoted
+reasoning evidence is. Tokens remain opaque and are never decoded in client code.
+The UI validates response shapes, question pairing and source IDs before saving.
+An expired check offers a fresh attempt. Reset creates a new random session ID;
+in-flight results for a reset session are discarded.
+
+This is local demo state, not authentication or a trusted student record. Reload
+restores feedback and completed checks; unsubmitted form text is not persisted.
+Same-origin tabs update via storage events. Blocked storage falls back to memory
+with a visible disclosure. Fixed cohort data remains separate from live attempts.
+
+`npm run smoke:journey` exercises a fresh live explanation through analyze, verify,
+and educator persistence in Chromium. `npm run test:e2e` instead uses explicitly
+intercepted synthetic responses for deterministic UI testing; those fixtures are
+never served by the application.
