@@ -1,6 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
 interface AttemptFormProps {
   onSubmit: (answer: string, explanation: string) => void;
@@ -20,40 +26,47 @@ export default function AttemptForm({ onSubmit, isSubmitting, disabled, buttonTe
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4 border rounded-md bg-white">
-      <h3 className="font-semibold text-lg">Your Answer</h3>
-      <div className="flex flex-col gap-2">
-        <label htmlFor="answer" className="text-sm font-medium">Answer</label>
-        <input 
-          id="answer"
-          type="text" 
-          value={answer}
-          onChange={(e) => setAnswer(e.target.value)}
-          className="border p-2 rounded-md disabled:bg-gray-100 disabled:text-gray-500"
-          placeholder="Enter your answer..."
-          disabled={disabled || isSubmitting}
-          required
-        />
-      </div>
-      <div className="flex flex-col gap-2">
-        <label htmlFor="explanation" className="text-sm font-medium">Explanation</label>
-        <textarea 
-          id="explanation"
-          value={explanation}
-          onChange={(e) => setExplanation(e.target.value)}
-          className="border p-2 rounded-md min-h-[100px] disabled:bg-gray-100 disabled:text-gray-500"
-          placeholder="Explain your reasoning..."
-          disabled={disabled || isSubmitting}
-          required
-        />
-      </div>
-      <button 
-        type="submit" 
-        className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-        disabled={disabled || isSubmitting || !answer.trim() || !explanation.trim()}
-      >
-        {isSubmitting ? "Submitting..." : buttonText}
-      </button>
-    </form>
+    <Card className="shadow-md hover:shadow-lg transition-all duration-300">
+      <CardHeader>
+        <CardTitle className="text-lg text-primary">Your Answer</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <div className="flex flex-col gap-3">
+            <Label htmlFor="answer">Answer</Label>
+            <Input 
+              id="answer"
+              type="text" 
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              placeholder="Enter your concise answer..."
+              disabled={disabled || isSubmitting}
+              required
+              className="transition-all focus-visible:ring-2 focus-visible:ring-primary/50"
+            />
+          </div>
+          <div className="flex flex-col gap-3">
+            <Label htmlFor="explanation">Explanation</Label>
+            <Textarea 
+              id="explanation"
+              value={explanation}
+              onChange={(e) => setExplanation(e.target.value)}
+              placeholder="Explain your reasoning step by step..."
+              disabled={disabled || isSubmitting}
+              required
+              className="min-h-[120px] transition-all focus-visible:ring-2 focus-visible:ring-primary/50 resize-y"
+            />
+          </div>
+          <Button 
+            type="submit" 
+            disabled={disabled || isSubmitting || !answer.trim() || !explanation.trim()}
+            className="w-full sm:w-auto self-start mt-2"
+          >
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSubmitting ? "Submitting..." : buttonText}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
