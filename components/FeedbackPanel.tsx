@@ -1,76 +1,119 @@
 import type { AnalyzeResponse, PublicSource } from "@/lib/contracts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, BookOpen } from "lucide-react";
-
-interface FeedbackPanelProps {
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { BookOpen, Quote } from "lucide-react";
+import { humanLabel } from "@/lib/session";
+export default function FeedbackPanel({
+  isLoading,
+  response,
+  sources,
+}: {
   isLoading: boolean;
   response: AnalyzeResponse | null;
   sources: PublicSource[];
-}
-
-export default function FeedbackPanel({ isLoading, response, sources }: FeedbackPanelProps) {
-  if (isLoading) {
+}) {
+  if (isLoading)
     return (
-      <Card className="shadow-md h-full min-h-[250px] flex items-center justify-center border-dashed">
-        <div className="flex flex-col items-center gap-4 text-muted-foreground">
-          <Loader2 className="animate-spin h-10 w-10 text-primary" />
-          <span className="text-sm font-medium tracking-wide">Analyzing your reasoning...</span>
+      <section role="status" className="rounded-xl border bg-white p-6">
+        <p className="mb-5 text-sm font-medium">Reading your explanation…</p>
+        <div className="space-y-3" aria-hidden="true">
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
         </div>
-      </Card>
+        <p className="mt-5 text-xs text-muted-foreground">
+          Live AI can take up to a minute. Your response stays here.
+        </p>
+      </section>
     );
-  }
-
-  if (!response) {
-    return null;
-  }
-
+  if (!response)
+    return (
+      <aside className="rounded-xl border border-dashed p-6">
+        <BookOpen className="mb-4 size-5 text-primary" />
+        <h3 className="text-base font-semibold">A coach for your reasoning</h3>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          Submit your explanation to see a possible reasoning pattern, a
+          source-backed next step and a new question.
+        </p>
+        <p className="mt-4 text-xs leading-5 text-muted-foreground">
+          AI suggestions can be wrong. Unclear or conflicting evidence is held
+          for review.
+        </p>
+      </aside>
+    );
   const { diagnosis, feedback } = response;
-
   return (
-    <Card className="shadow-lg border-primary/20 h-full">
-      <CardHeader className="bg-primary/5 pb-4 border-b">
-        <CardTitle className="text-xl text-primary flex items-center gap-2">
-          Nervon Coach
-          <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full font-medium tracking-wide">
-            Live response, pending review
-          </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-6 flex flex-col gap-6">
-        <div className="p-4 bg-muted/30 rounded-lg border flex flex-col gap-3">
-          <div className="flex justify-between items-start gap-4">
-            <p className="font-semibold text-sm">Hypothesis: <span className="font-normal">{diagnosis.label}</span></p>
-            <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground bg-muted px-2 py-1 rounded">
-              Provider: {diagnosis.decisionProvider}
-            </span>
+    <section
+      className="rounded-xl border bg-white p-6"
+      aria-label="Coach feedback"
+    >
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-semibold">Your reasoning, reflected</h3>
+        <Badge variant="secondary">
+          {diagnosis.decisionProvider === "generative-baseline"
+            ? "Generative fallback"
+            : diagnosis.decisionProvider === "jev"
+              ? "Jev decision"
+              : "Laya decision"}
+        </Badge>
+      </div>
+      <p className="eyebrow mb-2">POSSIBLE REASONING PATTERN</p>
+      <p className="text-lg font-medium">{humanLabel(diagnosis.label)}</p>
+      {diagnosis.evidence && (
+        <blockquote className="my-5 flex gap-3 border-l-2 border-primary/30 pl-4 text-sm leading-6 text-muted-foreground">
+          <Quote className="mt-1 size-4 shrink-0" />
+          <span>{diagnosis.evidence}</span>
+        </blockquote>
+      )}
+      {feedback ? (
+        <>
+          <p className="text-sm leading-7">{feedback.text}</p>
+          <div className="mt-5 border-t pt-4">
+            <p className="mb-2 flex items-center gap-2 text-xs font-semibold">
+              <BookOpen className="size-3.5" />
+              Grounded in your course
+            </p>
+            {feedback.sourceIds.map((id) => {
+              const source = sources.find((s) => s.id === id);
+              return (
+                source && (
+                  <details key={id} className="mt-2 text-xs">
+                    <summary className="cursor-pointer py-2 text-primary">
+                      {source.title}
+                    </summary>
+                    <p className="mb-3 leading-6 text-muted-foreground">
+                      {source.text}
+                    </p>
+                    <a
+                      href={source.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline"
+                    >
+                      {source.attribution}
+                    </a>
+                    <p className="mt-2 text-muted-foreground">
+                      {source.license} · {source.id}
+                    </p>
+                  </details>
+                )
+              );
+            })}
           </div>
-          <p className="text-muted-foreground text-sm italic border-l-2 border-primary/40 pl-3 py-1">
-            &quot;{diagnosis.evidence}&quot;
+        </>
+      ) : (
+        <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+          <p className="font-semibold">Let’s clarify before moving on.</p>
+          <p className="mt-1">
+            There isn’t enough consistent, relevant evidence for confident
+            feedback. Add the steps behind your answer and try again, or discuss
+            it with your educator.
           </p>
         </div>
-
-        {feedback && (
-          <div className="text-sm bg-blue-50/50 p-4 rounded-lg border border-blue-100 shadow-inner">
-            <p className="leading-relaxed"><strong className="text-blue-900">Feedback:</strong> {feedback.text}</p>
-            {feedback.sourceIds && feedback.sourceIds.length > 0 && (
-              <div className="mt-3 flex flex-col gap-2 text-xs text-blue-700 bg-blue-100/50 w-fit px-2 py-2 rounded">
-                <BookOpen className="h-3.5 w-3.5" />
-                <span className="font-medium">Source attribution</span>
-                {feedback.sourceIds.map((sourceId) => {
-                  const source = sources.find((candidate) => candidate.id === sourceId);
-                  return source ? (
-                    <a key={source.id} href={source.url} target="_blank" rel="noreferrer" className="underline underline-offset-2">
-                      {source.title} ({source.id})
-                    </a>
-                  ) : (
-                    <span key={sourceId}>{sourceId} (unrecognized source)</span>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      )}
+      <p className="mt-5 text-xs text-muted-foreground">
+        Live AI hypothesis · pending educator review
+      </p>
+    </section>
   );
 }

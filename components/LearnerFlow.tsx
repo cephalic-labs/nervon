@@ -1,291 +1,397 @@
 "use client";
-
-import { useState, useEffect } from "react";
-import type { PublicCourse, AnalyzeResponse, ApiError, VerifyResponse } from "@/lib/contracts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useRef, useState } from "react";
+import type {
+  PublicCourse,
+  AnalyzeResponse,
+  VerifyResponse,
+} from "@/lib/contracts";
 import { Button } from "@/components/ui/button";
-
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  AlertCircle,
+  RotateCcw,
+} from "lucide-react";
+import { currentSession, useSession, writeSession } from "@/lib/use-session";
+import {
+  isAnalysis,
+  isVerification,
+  saveAttempt,
+  saveVerification,
+  statusLabels,
+} from "@/lib/session";
 import AttemptForm from "./AttemptForm";
 import FeedbackPanel from "./FeedbackPanel";
-import { AlertCircle, ChevronRight, CheckCircle2, CheckSquare } from "lucide-react";
 
-export default function LearnerFlow({ course }: { course: PublicCourse }) {
-  const [selectedConceptId, setSelectedConceptId] = useState<string>("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [analyzeResponse, setAnalyzeResponse] = useState<AnalyzeResponse | null>(null);
-  const [localSessionId, setLocalSessionId] = useState<string | null>(null);
-
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [verifyResponse, setVerifyResponse] = useState<VerifyResponse | null>(null);
-
-  useEffect(() => {
-    let sid = localStorage.getItem("nervon_demo_session_id");
-    if (!sid) {
-      sid = crypto.randomUUID();
-      localStorage.setItem("nervon_demo_session_id", sid);
-    }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLocalSessionId(sid);
-  }, []);
-
-  const selectedConcept = course.concepts.find((c) => c.id === selectedConceptId);
-  const initialQuestion = selectedConcept?.questions[0];
-
-  // Sync to educator view
-  useEffect(() => {
-    if (selectedConcept && analyzeResponse) {
-      localStorage.setItem("nervon_educator_sync", JSON.stringify({
-        conceptTitle: selectedConcept.title,
-        conceptId: selectedConcept.id,
-        diagnosisLabel: analyzeResponse.diagnosis.label,
-        reviewRequired: analyzeResponse.diagnosis.reviewRequired,
-        verifyStatus: verifyResponse?.status || "pending",
-        timestamp: Date.now()
-      }));
-      // Dispatch custom event for same-window updates
-      window.dispatchEvent(new Event("nervon_sync_update"));
-    }
-  }, [selectedConcept, analyzeResponse, verifyResponse]);
-
-  // A review result keeps the form enabled for retry; only a supported diagnosis
-  // (with nextQuestion) locks it so the student advances to verification instead.
-  const analysisDone = !!analyzeResponse && !analyzeResponse.diagnosis.reviewRequired;
-
-  const handleInitialSubmit = async (answer: string, explanation: string) => {
-    if (!selectedConcept || !initialQuestion || !localSessionId) {
-      setApiError("Your demo session is still starting. Please try again in a moment.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    setApiError(null);
-    // Clear a previous review result so the retry feels fresh.
-    setAnalyzeResponse(null);
-    setVerifyResponse(null);
-
+export default function LearnerFlow({
+  course,
+  initialConcept,
+}: {
+  course: PublicCourse;
+  initialConcept?: string;
+}) {
+  const { session, storageAvailable } = useSession();
+  const [selectedId, setSelectedId] = useState(initialConcept ?? "");
+  const [fresh, setFresh] = useState(false);
+  const [busy, setBusy] = useState<"analyze" | "verify" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [formKey, setFormKey] = useState(0);
+  const resultRef = useRef<HTMLDivElement>(null);
+  const inFlight = useRef(false);
+  const concept = course.concepts.find((c) => c.id === selectedId);
+  const question = concept?.questions[0];
+  const latest = !fresh
+    ? session?.attempts.findLast(
+        (a) =>
+          a.analysis.conceptId === selectedId && a.questionId === question?.id,
+      )
+    : undefined;
+  const analysis = latest?.analysis ?? null;
+  const verification = latest?.verification ?? null;
+  const supported = analysis && !analysis.diagnosis.reviewRequired;
+  const announceResult = () =>
+    requestAnimationFrame(() => {
+      resultRef.current?.focus({ preventScroll: true });
+      resultRef.current?.scrollIntoView({
+        behavior: "instant",
+        block: "nearest",
+      });
+    });
+  async function submit(
+    kind: "analyze" | "verify",
+    answer: string,
+    explanation: string,
+  ) {
+    if (!question || !concept || inFlight.current) return;
+    const stored = currentSession();
+    writeSession(stored);
+    const expectedSession = stored.id;
+    if (kind === "verify" && !analysis?.nextQuestion) return;
+    inFlight.current = true;
+    setBusy(kind);
+    setError(null);
     try {
-      const response = await fetch("/api/analyze", {
+      const body =
+        kind === "analyze"
+          ? {
+              courseId: course.courseId,
+              questionId: question.id,
+              answer,
+              explanation,
+              localSessionId: stored.id,
+            }
+          : {
+              attemptId: analysis!.attemptId,
+              nextQuestionId: analysis!.nextQuestion!.id,
+              answer,
+              explanation,
+            };
+      const response = await fetch(`/api/${kind}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          courseId: course.courseId,
-          questionId: initialQuestion.id,
-          answer,
-          explanation,
-          localSessionId,
-        }),
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(75000),
       });
-
-      if (!response.ok) {
-        let message = "The analysis service is unavailable. No live inference was returned.";
-        try {
-          const error = (await response.json()) as ApiError;
-          if (error.error?.message) message = error.error.message;
-        } catch {
-          // Keep the disclosed unavailable message when the response is not JSON.
-        }
-        setApiError(message);
-        return;
+      let data: unknown;
+      try {
+        data = await response.json();
+      } catch {
+        throw new Error(
+          "The service returned an unreadable response. Your text is still here; please retry.",
+        );
       }
-
-      setAnalyzeResponse((await response.json()) as AnalyzeResponse);
-    } catch {
-      setApiError("The analysis service is unavailable. Check the connection and try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleNextQuestionSubmit = async (answer: string, explanation: string) => {
-    if (!analyzeResponse?.attemptId || !analyzeResponse.nextQuestion) {
-      setApiError("Verification requires a valid previous attempt.");
-      return;
-    }
-    
-    setIsVerifying(true);
-    setApiError(null);
-    setVerifyResponse(null);
-
-    try {
-      const response = await fetch("/api/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          attemptId: analyzeResponse.attemptId,
-          nextQuestionId: analyzeResponse.nextQuestion.id,
-          answer,
-          explanation,
-        }),
-      });
-
       if (!response.ok) {
-        let message = "The verification service is unavailable.";
-        try {
-          const error = (await response.json()) as ApiError;
-          if (error.error?.message) message = error.error.message;
-        } catch {
-          // Keep default message
-        }
-        setApiError(message);
-        return;
+        const code = (data as { error?: { code?: string } })?.error?.code;
+        throw new Error(
+          code === "INVALID_ATTEMPT"
+            ? "This check has expired or is no longer valid. Start a new attempt to continue."
+            : `The ${kind === "analyze" ? "feedback" : "verification"} service is unavailable. Your text is still here; please retry. Reference: ${response.headers.get("x-request-id") ?? "unavailable"}`,
+        );
       }
-
-      setVerifyResponse((await response.json()) as VerifyResponse);
-    } catch {
-      setApiError("The verification service is unavailable. Check the connection and try again.");
+      if (kind === "analyze") {
+        if (
+          !isAnalysis(data) ||
+          data.conceptId !== concept.id ||
+          (data.nextQuestion &&
+            (data.nextQuestion.id === question.id ||
+              !concept.questions.some(
+                (q) => q.id === data.nextQuestion!.id,
+              ))) ||
+          data.feedback?.sourceIds.some(
+            (id) => !concept.sources.some((s) => s.id === id),
+          )
+        )
+          throw new Error("The feedback could not be validated. Please retry.");
+      } else if (!isVerification(data))
+        throw new Error(
+          "The verification could not be validated. Please retry.",
+        );
+      const current = currentSession();
+      if (current.id !== expectedSession)
+        throw new Error(
+          "The session was reset in another tab. Start a new attempt.",
+        );
+      writeSession(
+        kind === "analyze"
+          ? saveAttempt(current, question.id, data as AnalyzeResponse)
+          : saveVerification(
+              current,
+              analysis!.attemptId,
+              data as VerifyResponse,
+            ),
+      );
+      setFresh(false);
+      announceResult();
+    } catch (e) {
+      setError(
+        e instanceof Error && e.name !== "TimeoutError"
+          ? e.message
+          : "The request timed out. Your text is still here; please retry.",
+      );
     } finally {
-      setIsVerifying(false);
+      inFlight.current = false;
+      setBusy(null);
     }
-  };
-
-
-  if (!selectedConceptId) {
-    return (
-      <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-2xl font-bold tracking-tight text-primary">Select a Concept</h2>
-          <p className="text-muted-foreground">Choose a topic to begin your learning journey.</p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {course.concepts.map((concept) => (
-            <button
-              key={concept.id}
-              type="button"
-              className="w-full rounded-xl text-left focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-              onClick={() => setSelectedConceptId(concept.id)}
-            >
-              <Card className="cursor-pointer transition-all hover:border-primary/50 hover:shadow-md group h-full">
-                <CardHeader>
-                  <CardTitle className="text-xl flex items-center justify-between group-hover:text-primary transition-colors">
-                    {concept.title}
-                    <ChevronRight className="h-5 w-5 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground line-clamp-2">{concept.learningObjective}</p>
-                </CardContent>
-              </Card>
-            </button>
-          ))}
-        </div>
-      </div>
-    );
   }
-
-  return (
-    <div className="flex flex-col gap-8 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between border-b pb-4">
-        <div>
-          <p className="text-sm text-muted-foreground uppercase tracking-wider font-semibold mb-1">Current Concept</p>
-          <h2 className="text-2xl font-bold text-primary">{selectedConcept?.title}</h2>
+  function startNew() {
+    setFresh(true);
+    setFormKey((k) => k + 1);
+    setError(null);
+  }
+  if (!concept)
+    return (
+      <section>
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold">Choose a concept</h2>
+          <p className="text-xs text-muted-foreground">
+            Progress is saved in this browser
+          </p>
         </div>
-        <Button 
-          variant="outline"
-          size="sm"
+        <div className="grid gap-4 md:grid-cols-3">
+          {course.concepts.map((c, i) => {
+            const last = session?.attempts.findLast(
+              (a) => a.analysis.conceptId === c.id,
+            );
+            return (
+              <button
+                key={c.id}
+                onClick={() => {
+                  setSelectedId(c.id);
+                  setFresh(false);
+                  setError(null);
+                }}
+                className="rounded-xl border bg-white p-6 text-left transition-colors hover:border-primary/50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+              >
+                <span className="mb-6 flex justify-between text-primary">
+                  <span className="font-mono text-sm">0{i + 1}</span>
+                  <ArrowRight className="size-4" />
+                </span>
+                <h3 className="mb-3 text-lg font-semibold">{c.title}</h3>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  {c.learningObjective}
+                </p>
+                <p className="mt-6 text-xs font-medium text-primary">
+                  {last
+                    ? last.analysis.diagnosis.reviewRequired
+                      ? "Clarify your reasoning"
+                      : last.verification
+                        ? statusLabels[last.verification.status]
+                        : "Continue your check"
+                    : "Start this concept"}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-6 text-xs leading-5 text-muted-foreground">
+          Synthetic demo session. Use invented examples only. Feedback and
+          evidence are saved locally; reset your session from the educator view.
+        </p>
+      </section>
+    );
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button
+          variant="ghost"
+          disabled={!!busy}
           onClick={() => {
-            setSelectedConceptId("");
-            setAnalyzeResponse(null);
-            setApiError(null);
-            setVerifyResponse(null);
+            setSelectedId("");
+            setFresh(false);
+            setError(null);
           }}
         >
-          Change Concept
+          <ArrowLeft />
+          All concepts
         </Button>
+        <Badge variant="outline">Synthetic demo session</Badge>
       </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        <div className="flex flex-col gap-6">
-          <Card className="border-primary/20 shadow-sm bg-primary/5">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2 text-primary">
-                <CheckCircle2 className="h-5 w-5" /> Initial Question
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm leading-relaxed">{initialQuestion?.prompt}</p>
-            </CardContent>
-          </Card>
-
-          <AttemptForm
-            onSubmit={handleInitialSubmit}
-            isSubmitting={isSubmitting}
-            disabled={analysisDone}
-          />
-
-          {apiError && (
-            <div className="p-4 bg-destructive/10 text-destructive border border-destructive/20 rounded-lg flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 mt-0.5 shrink-0" />
-              <div className="flex flex-col gap-1">
-                <p className="font-semibold text-sm">Error</p>
-                <p className="text-sm">{apiError}</p>
-              </div>
+      <div className="rounded-xl border bg-white px-5 py-4">
+        <ol
+          className="grid grid-cols-3 gap-2 text-xs font-medium"
+          aria-label="Practice progress"
+        >
+          {["Explain", "Reflect", "Check"].map((step, i) => (
+            <li
+              key={step}
+              aria-current={
+                (verification ? 2 : supported ? 2 : analysis ? 1 : 0) === i
+                  ? "step"
+                  : undefined
+              }
+              className={`flex items-center gap-2 ${i === 0 || analysis ? "text-primary" : "text-muted-foreground"}`}
+            >
+              <span className="flex size-6 items-center justify-center rounded-full border bg-muted">
+                {(i === 0 && supported) || (i === 2 && verification) ? (
+                  <Check className="size-3" />
+                ) : (
+                  i + 1
+                )}
+              </span>
+              {step}
+            </li>
+          ))}
+        </ol>
+      </div>
+      {!storageAvailable && (
+        <Alert>
+          <AlertCircle />
+          <AlertTitle>Browser storage is unavailable</AlertTitle>
+          <AlertDescription>
+            You can practise now, but progress will be lost when you reload.
+          </AlertDescription>
+        </Alert>
+      )}
+      <div className="grid items-start gap-7 lg:grid-cols-[1.05fr_1fr]">
+        <section className="rounded-xl border bg-white p-5 sm:p-7">
+          <p className="eyebrow mb-3">INITIAL QUESTION</p>
+          <h2 className="mb-3 text-xl font-semibold">{concept.title}</h2>
+          <p className="mb-6 text-sm leading-7">{question?.prompt}</p>
+          {supported ? (
+            <div className="rounded-lg bg-muted p-4">
+              <p className="flex items-center gap-2 text-sm font-medium">
+                <Check className="size-4 text-primary" />
+                Your explanation has been reviewed.
+              </p>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                Reflect on the feedback, then try the new question. You can
+                return to this check after navigating away.
+              </p>
+              <Button
+                variant="ghost"
+                className="mt-3"
+                disabled={!!busy}
+                onClick={startNew}
+              >
+                <RotateCcw />
+                Start a new attempt
+              </Button>
             </div>
+          ) : (
+            <AttemptForm
+              key={`${concept.id}-${formKey}`}
+              onSubmit={(a, e) => submit("analyze", a, e)}
+              isSubmitting={busy === "analyze"}
+            />
           )}
-        </div>
-
-        <div className="flex flex-col gap-6 sticky top-6">
-          <FeedbackPanel 
-            isLoading={isSubmitting} 
-            response={analyzeResponse} 
-            sources={selectedConcept?.sources ?? []}
-          />
-
-          {analyzeResponse && analyzeResponse.diagnosis.reviewRequired && (
-            <div className="p-4 bg-amber-50/80 text-amber-900 border border-amber-200 rounded-lg flex items-start gap-3 shadow-sm animate-in fade-in slide-in-from-top-2">
-              <AlertCircle className="h-5 w-5 mt-0.5 shrink-0 text-amber-600" />
-              <div className="flex flex-col gap-1.5">
-                <p className="font-semibold text-sm">More detail needed</p>
-                <p className="text-sm leading-relaxed">
-                  Your explanation provided insufficient evidence to confidently diagnose your reasoning.
-                  Add more detail in your explanation above and resubmit, or ask your educator for guidance.
+          <details className="mt-6 border-t pt-4">
+            <summary className="cursor-pointer py-2 text-xs font-medium text-primary">
+              Learning objective & course reading
+            </summary>
+            <p className="my-3 text-xs leading-6 text-muted-foreground">
+              {concept.learningObjective}
+            </p>
+            {concept.sources.map((s) => (
+              <div key={s.id} className="text-xs leading-6">
+                <p>{s.text}</p>
+                <a
+                  className="text-primary underline"
+                  href={s.url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {s.attribution}
+                </a>
+                <p className="text-muted-foreground">
+                  {s.license} · pending educator review
                 </p>
               </div>
-            </div>
+            ))}
+          </details>
+        </section>
+        <div
+          ref={resultRef}
+          tabIndex={-1}
+          className="space-y-5 outline-none"
+          aria-label="Feedback and next step"
+        >
+          {error && (
+            <Alert variant="destructive" role="alert">
+              <AlertCircle />
+              <AlertTitle>We couldn’t finish this step</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
-
-          {analyzeResponse && !analyzeResponse.diagnosis.reviewRequired && analyzeResponse.nextQuestion && !verifyResponse && (
-            <div className="flex flex-col gap-4 mt-2 animate-in fade-in slide-in-from-top-4 duration-500">
-              <Card className="border-blue-200 shadow-sm bg-blue-50/30">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg text-blue-800 flex items-center gap-2">
-                    <CheckSquare className="h-5 w-5" /> Check your understanding
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm leading-relaxed">{analyzeResponse.nextQuestion.prompt}</p>
-                </CardContent>
-              </Card>
-              <AttemptForm 
-                onSubmit={handleNextQuestionSubmit} 
-                isSubmitting={isVerifying}
-                disabled={isVerifying}
-                buttonText="Submit Verification"
+          <FeedbackPanel
+            isLoading={busy === "analyze"}
+            response={analysis}
+            sources={concept.sources}
+          />
+          {supported && analysis.nextQuestion && !verification && (
+            <section className="rounded-xl border bg-white p-5 sm:p-7">
+              <p className="eyebrow mb-3">NEW QUESTION / SAME CONCEPT</p>
+              <h3 className="mb-3 text-xl font-semibold">
+                Check what clicked.
+              </h3>
+              <p className="mb-6 text-sm leading-7">
+                {analysis.nextQuestion.prompt}
+              </p>
+              <AttemptForm
+                key={analysis.attemptId}
+                buttonText="Check understanding"
+                onSubmit={(a, e) => submit("verify", a, e)}
+                isSubmitting={busy === "verify"}
               />
-            </div>
+            </section>
           )}
-
-          {verifyResponse && (
-            <div className="mt-2 animate-in fade-in slide-in-from-top-4 duration-500">
-               <Card className="border-green-200 shadow-sm bg-green-50/50">
-                <CardHeader className="pb-3 border-b border-green-100 bg-green-100/30">
-                  <CardTitle className="text-lg text-green-800 flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5" /> Verification {verifyResponse.status}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <p className="text-sm text-green-900 leading-relaxed">{verifyResponse.reason}</p>
-                  <div className="mt-4 pt-4 border-t border-green-200/50 flex justify-end">
-                     <Button variant="outline" className="text-green-800 border-green-300 hover:bg-green-100" onClick={() => {
-                        setSelectedConceptId("");
-                        setAnalyzeResponse(null);
-                        setApiError(null);
-                        setVerifyResponse(null);
-                     }}>Next Concept</Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+          {verification && (
+            <section
+              role="status"
+              className={`rounded-xl border p-6 ${verification.status === "verified" ? "border-primary/20 bg-secondary" : "border-amber-200 bg-amber-50"}`}
+            >
+              <Badge variant="outline">
+                {statusLabels[verification.status]}
+              </Badge>
+              <h3 className="mt-4 text-xl font-semibold">
+                {verification.status === "verified"
+                  ? "That reasoning holds up."
+                  : verification.status === "needsPractice"
+                    ? "One more step toward clarity."
+                    : "Bring this to your educator."}
+              </h3>
+              <p className="mt-3 text-sm leading-7">{verification.reason}</p>
+              <p className="mt-4 text-xs leading-5 text-muted-foreground">
+                This checks an immediate response. It does not establish lasting
+                learning.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <Button
+                  onClick={() => {
+                    setSelectedId("");
+                    setFresh(false);
+                  }}
+                >
+                  Choose another concept
+                  <ArrowRight />
+                </Button>
+                <Button variant="outline" onClick={startNew}>
+                  Practise again
+                </Button>
+              </div>
+            </section>
           )}
         </div>
       </div>
