@@ -1,4 +1,4 @@
-import type { AnalyzeResponse, PublicSource } from "@/lib/contracts";
+import type { CoachState, PublicSource } from "@/lib/contracts";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BookOpen, Quote } from "lucide-react";
@@ -9,7 +9,7 @@ export default function FeedbackPanel({
   sources,
 }: {
   isLoading: boolean;
-  response: AnalyzeResponse | null;
+  response: Pick<CoachState, "diagnosis" | "feedback"> | null;
   sources: PublicSource[];
 }) {
   if (isLoading)
@@ -26,7 +26,7 @@ export default function FeedbackPanel({
         </p>
       </section>
     );
-  if (!response)
+  if (!response?.diagnosis)
     return (
       <aside className="rounded-xl border border-dashed p-6">
         <BookOpen className="mb-4 size-5 text-primary" />
@@ -36,8 +36,8 @@ export default function FeedbackPanel({
           source-backed next step and a new question.
         </p>
         <p className="mt-4 text-xs leading-5 text-muted-foreground">
-          AI suggestions can be wrong. Unclear or conflicting evidence is held
-          for review.
+          AI suggestions can be wrong. Unclear reasoning leads to a focused
+          question and guided practice.
         </p>
       </aside>
     );
@@ -106,13 +106,13 @@ export default function FeedbackPanel({
           <p className="font-semibold">Let’s clarify before moving on.</p>
           <p className="mt-1">
             There isn’t enough consistent, relevant evidence for confident
-            feedback. Add the steps behind your answer and try again, or discuss
-            it with your educator.
+            feedback. Answer the focused question so Nervon can identify the
+            step that needs attention.
           </p>
         </div>
       )}
       <p className="mt-5 text-xs text-muted-foreground">
-        Live AI hypothesis · pending educator review
+        Live AI hypothesis · not a validated learning score
       </p>
     </section>
   );

@@ -4,10 +4,10 @@ import { getPublicCourse } from "@/lib/course";
 export default async function LearnPage({
   searchParams,
 }: {
-  searchParams: Promise<{ concept?: string }>;
+  searchParams: Promise<{ concept?: string; conversation?: string }>;
 }) {
   const course = getPublicCourse("classical-genetics");
-  const { concept } = await searchParams;
+  const { concept, conversation } = await searchParams;
   return (
     <AppShell active="learn">
       <div className="mb-8">
@@ -20,6 +20,11 @@ export default async function LearnPage({
       </div>
       <LearnerFlow
         course={course}
+        initialConversation={
+          typeof conversation === "string" && conversation.length <= 128
+            ? conversation
+            : undefined
+        }
         initialConcept={
           course.concepts.some((c) => c.id === concept) ? concept : undefined
         }
