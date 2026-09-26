@@ -48,14 +48,19 @@ export default function LearnerFlow({ course }: { course: PublicCourse }) {
     }
   }, [selectedConcept, analyzeResponse, verifyResponse]);
 
+  // A review result keeps the form enabled for retry; only a supported diagnosis
+  // (with nextQuestion) locks it so the student advances to verification instead.
+  const analysisDone = !!analyzeResponse && !analyzeResponse.diagnosis.reviewRequired;
+
   const handleInitialSubmit = async (answer: string, explanation: string) => {
     if (!selectedConcept || !initialQuestion || !localSessionId) {
       setApiError("Your demo session is still starting. Please try again in a moment.");
       return;
     }
-    
+
     setIsSubmitting(true);
     setApiError(null);
+    // Clear a previous review result so the retry feels fresh.
     setAnalyzeResponse(null);
     setVerifyResponse(null);
 
@@ -202,10 +207,10 @@ export default function LearnerFlow({ course }: { course: PublicCourse }) {
             </CardContent>
           </Card>
 
-          <AttemptForm 
-            onSubmit={handleInitialSubmit} 
-            isSubmitting={isSubmitting} 
-            disabled={!!analyzeResponse}
+          <AttemptForm
+            onSubmit={handleInitialSubmit}
+            isSubmitting={isSubmitting}
+            disabled={analysisDone}
           />
 
           {apiError && (
@@ -230,8 +235,11 @@ export default function LearnerFlow({ course }: { course: PublicCourse }) {
             <div className="p-4 bg-amber-50/80 text-amber-900 border border-amber-200 rounded-lg flex items-start gap-3 shadow-sm animate-in fade-in slide-in-from-top-2">
               <AlertCircle className="h-5 w-5 mt-0.5 shrink-0 text-amber-600" />
               <div className="flex flex-col gap-1.5">
-                <p className="font-semibold text-sm">Educator Review Required</p>
-                <p className="text-sm leading-relaxed">Your explanation provided insufficient evidence to confidently diagnose your reasoning. We need more detail or educator review before advancing.</p>
+                <p className="font-semibold text-sm">More detail needed</p>
+                <p className="text-sm leading-relaxed">
+                  Your explanation provided insufficient evidence to confidently diagnose your reasoning.
+                  Add more detail in your explanation above and resubmit, or ask your educator for guidance.
+                </p>
               </div>
             </div>
           )}
@@ -252,7 +260,7 @@ export default function LearnerFlow({ course }: { course: PublicCourse }) {
                 onSubmit={handleNextQuestionSubmit} 
                 isSubmitting={isVerifying}
                 disabled={isVerifying}
-                buttonText="Submit Verification (Demo)"
+                buttonText="Submit Verification"
               />
             </div>
           )}
