@@ -11,7 +11,8 @@
     "smoke:analyze": "node scripts/smoke-analyze.mjs",
     "test:e2e": "playwright test",
     "smoke:journey": "node scripts/smoke-journey.mjs",
-    "slide:export": "node scripts/export-slide.mjs"
+    "slide:export": "node scripts/export-slide.mjs",
+    "smoke:coach": "node scripts/smoke-coach.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

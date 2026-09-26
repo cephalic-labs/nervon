@@ -1,80 +1,186 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import {
-  supportedDiagnosis,
-  uncertainty,
-  verified,
-} from "../fixtures/learner-contracts";
+import type {
+  CoachRequest,
+  CoachResponse,
+  CoachPhase,
+  CoachResult,
+  CoachState,
+} from "../../lib/contracts";
+import { supportedDiagnosis } from "../fixtures/learner-contracts";
+import knowledge from "../../data/genetics-knowledge.json" with { type: "json" };
 
-test("explained answer → feedback → check → persistent educator result and reset", async ({
+type Step = {
+  phase: CoachPhase;
+  status?: CoachResult["status"];
+  error?: boolean;
+  invalid?: boolean;
+  uncertain?: boolean;
+};
+async function mockCoach(page: Page, steps: Step[]) {
+  let index = 0;
+  await page.route("**/api/coach", async (route) => {
+    const step = steps[Math.min(index++, steps.length - 1)];
+    if (step.error) {
+      await route.fulfill({
+        status: 502,
+        json: { error: { code: "PROVIDER_FAILURE" } },
+      });
+      return;
+    }
+    const body = route.request().postDataJSON() as CoachRequest;
+    const prior = "continuation" in body ? body.continuation.state : null;
+    const state: CoachState = prior
+      ? structuredClone(prior)
+      : {
+          version: 1,
+          id: `browser-test-conversation-${index}`,
+          courseId: "classical-genetics",
+          courseVersion: "1.0.0",
+          knowledgeVersion: "1.0.0",
+          questionId: "genotype-phenotype-1",
+          localSessionId: "localSessionId" in body ? body.localSessionId : "",
+          issuedAt: Math.floor(Date.now() / 1000),
+          phase: "clarify",
+          turns: [],
+          pending: null,
+          diagnosis: null,
+          feedback: null,
+          result: null,
+        };
+    state.turns.push({
+      kind: !prior
+        ? "initial"
+        : prior.phase === "clarify"
+          ? "probe"
+          : "verification",
+      questionId: prior?.pending?.id ?? state.questionId,
+      prompt:
+        prior?.pending?.prompt ?? "Which purple-flower genotypes are possible?",
+      answer: body.answer,
+      explanation: body.explanation,
+    });
+    state.phase = step.phase;
+    state.diagnosis =
+      step.phase === "clarify" || step.uncertain
+        ? {
+            label: "insufficient-evidence",
+            evidence: body.explanation,
+            reviewRequired: true,
+            decisionProvider: "jev",
+          }
+        : supportedDiagnosis.diagnosis;
+    state.feedback = state.diagnosis.reviewRequired
+      ? null
+      : supportedDiagnosis.feedback;
+    state.pending =
+      step.phase === "complete"
+        ? null
+        : step.phase === "clarify"
+          ? {
+              id: `genotype-phenotype-1-probe-${state.turns.length}`,
+              prompt:
+                "Could Pp be purple? Explain what each allele contributes.",
+            }
+          : supportedDiagnosis.nextQuestion;
+    state.result = step.status
+      ? {
+          status: step.status,
+          reason:
+            step.status === "verified"
+              ? "Your explanation supports complete dominance."
+              : "The reasoning needs another step.",
+        }
+      : null;
+    const response: CoachResponse = {
+      state,
+      continuationToken:
+        step.phase === "complete" ? null : "TEST_ONLY_NOT_A_TOKEN",
+      message:
+        step.phase === "clarify"
+          ? "Let’s focus on one distinction."
+          : step.phase === "complete"
+            ? "Your next step is ready."
+            : "Use the knowledge base and try this question.",
+      lesson:
+        step.phase === "retry" || step.uncertain
+          ? knowledge.concepts[0].lesson
+          : null,
+    };
+    if (step.invalid)
+      state.pending = { id: "invented", prompt: "An invalid question" };
+    await route.fulfill({ json: response });
+  });
+}
+async function answer(
+  page: Page,
+  button: string,
+  explanation = "Pp can be purple because one P masks the recessive phenotype.",
+) {
+  await page.getByLabel("Your answer", { exact: true }).fill("PP or Pp");
+  await page
+    .getByLabel("Explain your reasoning", { exact: true })
+    .fill(explanation);
+  await page.getByRole("button", { name: button, exact: true }).click();
+}
+
+test("clarification updates the conversation, resumes, verifies and syncs personal progress", async ({
   page,
   context,
 }, info) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.route("**/api/analyze", async (route) => {
-    const body = route.request().postDataJSON();
-    expect(body.answer).toBe("PP only");
-    expect(body.localSessionId).toBeTruthy();
-    await route.fulfill({ json: supportedDiagnosis });
-  });
-  await page.route("**/api/verify", async (route) => {
-    expect(route.request().postDataJSON().nextQuestionId).toBe(
-      "genotype-phenotype-2",
-    );
-    await route.fulfill({ json: verified });
-  });
+  await mockCoach(page, [
+    { phase: "clarify" },
+    { phase: "verify" },
+    { phase: "complete", status: "verified" },
+  ]);
   await page.goto("/learn?concept=genotype-phenotype");
-  await page.getByLabel("Your answer", { exact: true }).fill("PP only");
-  await page
-    .getByLabel("Explain your reasoning", { exact: true })
-    .fill("Purple is dominant, so both alleles must be P.");
-  await page.getByRole("button", { name: "Get feedback", exact: true }).click();
+  await answer(page, "Get feedback", "I guessed.");
   await expect(
-    page.getByText("Dominant means homozygous", { exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Check understanding", exact: true }),
+    page.getByRole("heading", { name: "Let’s narrow it down." }),
   ).toBeVisible();
   await page.reload();
   await expect(
-    page.getByRole("button", { name: "Check understanding", exact: true }),
+    page.getByRole("button", { name: "Continue coaching", exact: true }),
   ).toBeVisible();
-  const educator = await context.newPage();
-  await educator.goto("/educator");
+  const progress = await context.newPage();
+  await progress.goto("/progress");
   await expect(
-    educator.getByText("1 awaiting a check", { exact: false }),
+    progress.getByText("Exploring your reasoning", { exact: true }),
   ).toBeVisible();
-  await page.getByLabel("Your answer", { exact: true }).fill("RR or Rr");
-  await page
-    .getByLabel("Explain your reasoning", { exact: true })
-    .fill("R masks r in a heterozygote, so either genotype can be red.");
-  await page
-    .getByRole("button", { name: "Check understanding", exact: true })
-    .click();
+  await answer(page, "Continue coaching");
+  await expect(
+    page.getByRole("heading", { name: "Check what clicked." }),
+  ).toBeVisible();
+  await answer(
+    page,
+    "Check understanding",
+    "Rr and RR both produce red because R masks r.",
+  );
   await expect(
     page.getByRole("heading", { name: "That reasoning holds up." }),
   ).toBeVisible();
   await expect(
-    educator.getByText("0 awaiting a check", { exact: false }),
+    progress.getByText("Understanding checked", { exact: true }),
+  ).toHaveCount(2);
+  await progress.reload();
+  await expect(
+    progress.getByRole("heading", { name: "Your learning history" }),
   ).toBeVisible();
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.screenshot({
-    path: `test-results/${info.project.name}-feedback.png`,
+    path: `test-results/${info.project.name}-coaching.png`,
     fullPage: true,
   });
-  await educator.reload();
-  await expect(
-    educator.getByRole("heading", { name: "Attempt history" }),
-  ).toBeVisible();
-  await educator
+  await progress
     .getByRole("button", { name: "Reset session", exact: true })
     .click();
-  await educator
+  await progress
     .getByRole("button", { name: "Clear saved session", exact: true })
     .click();
   await expect(
-    educator.getByRole("heading", { name: "Start with one explanation." }),
+    progress.getByRole("heading", { name: "Start with one explanation." }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Get feedback", exact: true }),
@@ -82,56 +188,68 @@ test("explained answer → feedback → check → persistent educator result and
   expect(errors).toEqual([]);
 });
 
-test("review, provider failure, retry and invalid output keep honest states", async ({
+test("persistent uncertainty becomes a lesson, retry and study plan without human handoff", async ({
   page,
 }) => {
-  let n = 0;
-  await page.route("**/api/analyze", async (route) => {
-    n++;
-    if (n === 1) await route.fulfill({ json: uncertainty });
-    else if (n === 2)
-      await route.fulfill({
-        status: 502,
-        json: { error: { code: "PROVIDER_FAILURE" } },
-      });
-    else if (n === 3)
-      await route.fulfill({
-        json: {
-          ...supportedDiagnosis,
-          nextQuestion: { id: "invented", prompt: "Invalid" },
-        },
-      });
-    else await route.fulfill({ json: supportedDiagnosis });
-  });
+  await mockCoach(page, [
+    { phase: "clarify" },
+    { phase: "clarify" },
+    { phase: "verify", uncertain: true },
+    { phase: "retry", status: "needsClarification", uncertain: true },
+    { phase: "complete", status: "needsPractice", uncertain: true },
+  ]);
   await page.goto("/learn?concept=genotype-phenotype");
-  await page.getByLabel("Your answer", { exact: true }).fill("PP or Pp");
-  await page
-    .getByLabel("Explain your reasoning", { exact: true })
-    .fill("I guessed.");
-  await page.getByRole("button", { name: "Get feedback", exact: true }).click();
-  await expect(page.getByText("Let’s clarify before moving on.")).toBeVisible();
+  await answer(page, "Get feedback", "I guessed.");
+  await answer(page, "Continue coaching", "I am unsure.");
+  await answer(page, "Continue coaching", "I still do not know.");
   await expect(
-    page.getByText("Generative fallback", { exact: true }),
+    page.getByRole("heading", { name: "Worked example" }),
   ).toBeVisible();
+  await answer(page, "Check understanding", "I guessed.");
+  await expect(
+    page.getByRole("heading", { name: "Try the steps in your own words." }),
+  ).toBeVisible();
+  await answer(page, "Check understanding", "I am not sure.");
+  await expect(
+    page.getByRole("heading", { name: "Keep building the foundation." }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Your next steps" }),
+  ).toBeVisible();
+  await expect(page.locator("main")).not.toContainText(/teacher|educator/i);
   await expect(
     page.getByRole("button", { name: "Check understanding", exact: true }),
   ).toHaveCount(0);
-  for (const message of ["service is unavailable", "could not be validated"]) {
-    await page
-      .getByRole("button", { name: "Get feedback", exact: true })
-      .click();
-    await expect(page.locator("[data-slot=alert]")).toContainText(message);
-    await expect(
-      page.getByLabel("Explain your reasoning", { exact: true }),
-    ).toHaveValue("I guessed.");
-  }
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+});
+
+test("provider and invalid output errors preserve text for manual retry", async ({
+  page,
+}) => {
+  await mockCoach(page, [
+    { phase: "verify", error: true },
+    { phase: "verify", invalid: true },
+    { phase: "verify" },
+  ]);
+  await page.goto("/learn?concept=genotype-phenotype");
+  await answer(page, "Get feedback");
+  await expect(page.locator("[data-slot=alert]")).toContainText(
+    "service is unavailable",
+  );
+  await expect(page.getByLabel("Your answer", { exact: true })).toHaveValue(
+    "PP or Pp",
+  );
+  await page.getByRole("button", { name: "Get feedback", exact: true }).click();
+  await expect(page.locator("[data-slot=alert]")).toContainText(
+    "could not be validated",
+  );
   await page.getByRole("button", { name: "Get feedback", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Check understanding", exact: true }),
   ).toBeVisible();
 });
 
-test("all screens are accessible, responsive and free of runtime errors", async ({
+test("screens are responsive and accessible; keyboard submission and old bookmarks work", async ({
   page,
 }, info) => {
   const errors: string[] = [];
@@ -140,7 +258,7 @@ test("all screens are accessible, responsive and free of runtime errors", async 
     "/",
     "/learn",
     "/learn?concept=segregation",
-    "/educator",
+    "/progress",
     "/demo",
   ]) {
     await page.goto(path);
@@ -162,72 +280,31 @@ test("all screens are accessible, responsive and free of runtime errors", async 
       fullPage: true,
     });
   }
+  await page.goto("/educator");
+  await expect(page).toHaveURL(/\/progress$/);
   await page.goto("/");
   await page.keyboard.press("Tab");
   await expect(
     page.getByRole("link", { name: "Skip to content" }),
   ).toBeFocused();
-  await page.route("**/api/analyze", (route) => route.fulfill({ json: uncertainty }));
+  await mockCoach(page, [{ phase: "clarify" }]);
   await page.goto("/learn?concept=genotype-phenotype");
   await page.getByLabel("Your answer", { exact: true }).focus();
-  await page.keyboard.type("PP or Pp");
+  await page.keyboard.type("PP");
   await page.keyboard.press("Tab");
-  await expect(page.getByLabel("Explain your reasoning", { exact: true })).toBeFocused();
+  await expect(
+    page.getByLabel("Explain your reasoning", { exact: true }),
+  ).toBeFocused();
   await page.keyboard.type("I guessed.");
   await page.keyboard.press("Tab");
-  await expect(page.getByRole("button", { name: "Get feedback", exact: true })).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(page.getByText("Let’s clarify before moving on.")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Continue coaching", exact: true }),
+  ).toBeVisible();
   expect(errors).toEqual([]);
 });
 
-for (const status of ["needsPractice", "educatorReview"] as const) {
-  test(`verification ${status} is presented honestly and persists`, async ({
-    page,
-  }) => {
-    await page.route("**/api/analyze", (route) =>
-      route.fulfill({ json: supportedDiagnosis }),
-    );
-    await page.route("**/api/verify", (route) =>
-      route.fulfill({
-        json: {
-          status,
-          reason: "Discuss the difference between phenotype and genotype.",
-        },
-      }),
-    );
-    await page.goto("/learn?concept=genotype-phenotype");
-    await page.getByLabel("Your answer", { exact: true }).fill("PP");
-    await page
-      .getByLabel("Explain your reasoning", { exact: true })
-      .fill("Both alleles must be P.");
-    await page
-      .getByRole("button", { name: "Get feedback", exact: true })
-      .click();
-    await page
-      .getByRole("button", { name: "Check understanding", exact: true })
-      .waitFor();
-    await page.getByLabel("Your answer", { exact: true }).fill("RR");
-    await page
-      .getByLabel("Explain your reasoning", { exact: true })
-      .fill("I am unsure how r affects the phenotype.");
-    await page
-      .getByRole("button", { name: "Check understanding", exact: true })
-      .click();
-    const heading =
-      status === "needsPractice"
-        ? "One more step toward clarity."
-        : "Bring this to your educator.";
-    await expect(page.getByRole("heading", { name: heading })).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: "That reasoning holds up." }),
-    ).toHaveCount(0);
-    await page.reload();
-    await expect(page.getByRole("heading", { name: heading })).toBeVisible();
-  });
-}
-
-test("blocked storage supports an in-memory session with a visible disclosure", async ({
+test("blocked browser storage still supports an in-memory coaching session", async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -238,19 +315,43 @@ test("blocked storage supports an in-memory session with a visible disclosure", 
       throw new DOMException("Blocked", "SecurityError");
     };
   });
-  await page.route("**/api/analyze", (route) =>
-    route.fulfill({ json: supportedDiagnosis }),
-  );
+  await mockCoach(page, [{ phase: "clarify" }]);
   await page.goto("/learn?concept=genotype-phenotype");
-  await page.getByLabel("Your answer", { exact: true }).fill("PP");
-  await page
-    .getByLabel("Explain your reasoning", { exact: true })
-    .fill("Both alleles must be P.");
-  await page.getByRole("button", { name: "Get feedback", exact: true }).click();
+  await answer(page, "Get feedback", "I guessed.");
   await expect(
     page.getByText("Browser storage is unavailable", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Check understanding", exact: true }),
+    page.getByRole("button", { name: "Continue coaching", exact: true }),
+  ).toBeVisible();
+});
+
+test("an earlier saved conversation opens its own result, not the latest attempt", async ({
+  page,
+}) => {
+  await mockCoach(page, [
+    { phase: "verify" },
+    { phase: "complete", status: "verified" },
+    { phase: "clarify" },
+  ]);
+  await page.goto("/learn?concept=genotype-phenotype");
+  await answer(page, "Get feedback");
+  await answer(page, "Check understanding");
+  await expect(
+    page.getByRole("heading", { name: "That reasoning holds up." }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Practise again", exact: true })
+    .click();
+  await answer(page, "Get feedback", "I guessed.");
+  await expect(
+    page.getByRole("heading", { name: "Let’s narrow it down." }),
+  ).toBeVisible();
+  await page.goto("/progress");
+  await page
+    .getByRole("link", { name: "Revisit this concept", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "That reasoning holds up." }),
   ).toBeVisible();
 });
