@@ -25,7 +25,7 @@ export function createAnalyzeHandler(dependencies: Dependencies = {}) {
     let fallback = false;
     const emit = (event: Record<string, unknown>) => {
       // Diagnostics must not turn an otherwise valid model response into an error.
-      try { (dependencies.log ?? console.info)({ requestId, questionId, fallback, ...event }); } catch { /* logging unavailable */ }
+      try { (dependencies.log ?? ((e: Record<string, unknown>) => console.info(JSON.stringify(e))))({ requestId, questionId, fallback, ...event }); } catch { /* logging unavailable */ }
     };
     const respond = (body: AnalyzeResponse | ApiError, status: number) => Response.json(body, {
       status, headers: { "Cache-Control": "no-store", "X-Request-Id": requestId },
