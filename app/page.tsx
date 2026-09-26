@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getPublicCourse } from "@/lib/course";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { GraduationCap, ArrowRight, Activity, BookOpen } from "lucide-react";
 
