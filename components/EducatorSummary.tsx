@@ -1,177 +1,258 @@
 "use client";
-
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import Link from "next/link";
+import { ArrowRight, RotateCcw, FlaskConical, Activity } from "lucide-react";
 import type { PublicCourse } from "@/lib/contracts";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users2, Activity, Clock, CheckCircle2, AlertCircle } from "lucide-react";
-
-interface SyncState {
-  conceptTitle: string;
-  conceptId: string;
-  diagnosisLabel: string;
-  reviewRequired: boolean;
-  verifyStatus: string;
-  timestamp: number;
-}
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { currentSession, useSession, writeSession } from "@/lib/use-session";
+import { humanLabel, statusLabels, summarize } from "@/lib/session";
+import cohort from "@/data/synthetic-cohort.json";
 
 export default function EducatorSummary({ course }: { course: PublicCourse }) {
-  const [syncState, setSyncState] = useState<SyncState | null>(null);
-
-  useEffect(() => {
-    const updateState = () => {
-      const stored = localStorage.getItem("nervon_educator_sync");
-      if (stored) {
-        try {
-          setSyncState(JSON.parse(stored) as SyncState);
-        } catch {
-          // ignore parse errors
-        }
-      }
-    };
-
-    updateState();
-    window.addEventListener("storage", updateState);
-    window.addEventListener("nervon_sync_update", updateState);
-
-    return () => {
-      window.removeEventListener("storage", updateState);
-      window.removeEventListener("nervon_sync_update", updateState);
-    };
-  }, []);
-
-  // Compute mock cohort data dynamically by injecting the live session into one of the concepts
+  const { session, storageAvailable } = useSession();
+  const [confirmReset, setConfirmReset] = useState(false);
+  const attempts = session?.attempts ?? [];
+  const counts = summarize(attempts);
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-      <Card className="shadow-md border-slate-200">
-        <CardHeader className="bg-slate-50/50 border-b pb-4">
-          <CardTitle className="flex items-center justify-between text-lg">
-            <span className="flex items-center gap-2">
-              <Users2 className="h-5 w-5 text-indigo-600" />
-              Cohort Summary
-            </span>
-            <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full font-medium tracking-wide">
-              Pending Review
-            </span>
-          </CardTitle>
-          <CardDescription>
-            Synthetic cohort data based on recent performance (not real student data).
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <ul className="flex flex-col gap-4">
-            {course.concepts.map((concept) => {
-              const hasActiveSession = syncState?.conceptId === concept.id;
-              
-              return (
-                <li key={concept.id} className="flex flex-col gap-2 pb-4 border-b last:border-0 last:pb-0">
-                  <strong className="text-sm text-slate-800">{concept.title}</strong>
-                  {hasActiveSession ? (
-                    <div className="flex flex-col gap-1.5 mt-1 bg-indigo-50/50 p-3 rounded-md border border-indigo-100">
-                      <div className="text-xs text-indigo-900 flex justify-between items-center">
-                        <span className="font-medium flex items-center gap-1.5"><Activity className="h-3.5 w-3.5" /> 1 Active Student</span>
-                        <span className="opacity-70 flex items-center gap-1"><Clock className="h-3 w-3" /> Just now</span>
-                      </div>
-                      <div className="text-sm text-slate-700">
-                        <span className="font-medium block mb-0.5 text-xs text-slate-500 uppercase">Recent Diagnosis</span>
-                        {syncState.diagnosisLabel}
-                      </div>
-                      <div className="flex items-center gap-2 mt-1">
-                         {syncState.reviewRequired ? (
-                            <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-800 rounded flex items-center gap-1">
-                              <AlertCircle className="h-3 w-3" /> Review Required
-                            </span>
-                         ) : (
-                            <span className="text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded flex items-center gap-1">
-                              <CheckCircle2 className="h-3 w-3" /> Auto-Diagnosed
-                            </span>
-                         )}
-                         <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-600 rounded">
-                           Verify: {syncState.verifyStatus}
-                         </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <span className="text-sm text-slate-500 italic">No aggregate data yet.</span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </CardContent>
-      </Card>
-
-      <Card className="shadow-md border-slate-200 sticky top-6">
-        <CardHeader className="bg-slate-50/50 border-b pb-4">
-          <CardTitle className="flex items-center justify-between text-lg">
-            <span className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-green-600" />
-              Live Demo Session
-            </span>
-            <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full font-medium tracking-wide">
-              Live Stream
-            </span>
-          </CardTitle>
-          <CardDescription>
-            Real-time synthetic student progress mapped from the learner view.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-          {!syncState ? (
-            <div className="p-4 bg-slate-50 border border-dashed rounded-lg text-sm text-slate-500 italic flex flex-col items-center justify-center min-h-[150px] gap-2">
-              <Clock className="h-6 w-6 opacity-50" />
-              No current session active. Waiting for student attempt...
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2">
-              <div className="p-4 rounded-lg border bg-white shadow-sm flex flex-col gap-3">
-                <div className="flex justify-between items-start border-b pb-2">
-                   <div className="flex flex-col">
-                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Concept</span>
-                     <span className="text-sm font-medium text-slate-900">{syncState.conceptTitle}</span>
-                   </div>
-                   <div className="text-xs text-muted-foreground bg-slate-100 px-2 py-1 rounded flex items-center gap-1.5">
-                     <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                     </span>
-                     Active
-                   </div>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pattern Identified</span>
-                  <span className="text-sm text-slate-800 bg-slate-50 p-2 border rounded">{syncState.diagnosisLabel}</span>
-                </div>
-
-                {syncState.reviewRequired ? (
-                   <div className="bg-amber-50 p-3 rounded border border-amber-200 text-amber-900 flex items-start gap-2 mt-2">
-                     <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                     <div className="flex flex-col">
-                       <span className="text-sm font-medium">Attention Required</span>
-                       <span className="text-xs opacity-90 mt-0.5">The student&apos;s explanation lacked sufficient evidence. Awaiting your review.</span>
-                     </div>
-                   </div>
-                ) : (
-                   <div className="flex flex-col gap-1.5 mt-2">
-                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Verification Status</span>
-                     <div className="flex items-center gap-2">
-                       {syncState.verifyStatus === "pending" ? (
-                         <span className="text-sm px-2 py-1 bg-slate-100 text-slate-600 rounded flex items-center gap-1.5 border w-fit">
-                           <Clock className="h-3.5 w-3.5" /> Waiting for student...
-                         </span>
-                       ) : (
-                         <span className="text-sm px-2 py-1 bg-green-50 text-green-700 rounded border border-green-200 flex items-center gap-1.5 w-fit">
-                           <CheckCircle2 className="h-3.5 w-3.5" /> {syncState.verifyStatus}
-                         </span>
-                       )}
-                     </div>
-                   </div>
-                )}
-              </div>
-            </div>
+    <div className="space-y-10">
+      <section aria-labelledby="live-heading">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Activity className="size-5 text-primary" />
+            <h2 id="live-heading" className="text-xl font-semibold">
+              This browser session
+            </h2>
+            <Badge variant="secondary">Live AI results</Badge>
+          </div>
+          {attempts.length > 0 && (
+            <Button variant="outline" onClick={() => setConfirmReset(true)}>
+              <RotateCcw />
+              Reset session
+            </Button>
           )}
-        </CardContent>
-      </Card>
+        </div>
+        <p className="mb-5 text-sm leading-6 text-muted-foreground">
+          Synthetic demo inputs, analysed live. Saved in this browser only;
+          updates from other tabs appear here. No learner identities or cohort
+          tracking.
+        </p>
+        {!storageAvailable && (
+          <p role="status" className="mb-4 text-sm text-destructive">
+            Browser storage is unavailable. Results will not survive a reload.
+          </p>
+        )}
+        {confirmReset && (
+          <div
+            role="alert"
+            className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-5"
+          >
+            <p className="text-sm font-semibold">
+              Clear this browser’s saved attempts?
+            </p>
+            <p className="mt-1 text-sm">
+              This removes feedback and checks from this session. The synthetic
+              cohort stays available.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  const next = {
+                    ...currentSession(),
+                    id: crypto.randomUUID(),
+                    attempts: [],
+                  };
+                  writeSession(next);
+                  setConfirmReset(false);
+                }}
+              >
+                Clear saved session
+              </Button>
+              <Button variant="outline" onClick={() => setConfirmReset(false)}>
+                Keep session
+              </Button>
+            </div>
+          </div>
+        )}
+        <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            [counts.attempts, "Explained attempts"],
+            [counts.verified, "Understanding checked"],
+            [counts.needsPractice, "Need more practice"],
+            [counts.educatorReview, "For educator review"],
+          ].map(([n, label]) => (
+            <div key={label} className="rounded-xl border bg-white p-5">
+              <p className="text-3xl font-semibold tabular-nums">{n}</p>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                {label}
+              </p>
+            </div>
+          ))}
+        </div>
+        {attempts.length === 0 ? (
+          <div className="rounded-xl border border-dashed bg-white p-8">
+            <h3 className="text-lg font-semibold">
+              Start with one explanation.
+            </h3>
+            <p className="mt-2 max-w-lg text-sm leading-6 text-muted-foreground">
+              After a learner submits an answer, their possible reasoning
+              pattern and follow-up result will appear here.
+            </p>
+            <Link
+              href="/learn"
+              className={buttonVariants({
+                variant: "outline",
+                className: "mt-5",
+              })}
+            >
+              Open practice
+              <ArrowRight />
+            </Link>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl border bg-white">
+            <div className="flex flex-wrap justify-between gap-2 border-b px-5 py-4">
+              <h3 className="text-sm font-semibold">Attempt history</h3>
+              <p className="text-xs text-muted-foreground">
+                Newest first · {counts.pending} awaiting a check · latest 50
+                retained
+              </p>
+            </div>
+            <ol className="divide-y">
+              {[...attempts].reverse().map((a) => {
+                const concept = course.concepts.find(
+                  (c) => c.id === a.analysis.conceptId,
+                );
+                const status = a.analysis.diagnosis.reviewRequired
+                  ? "educatorReview"
+                  : (a.verification?.status ?? "pending");
+                return (
+                  <li
+                    key={a.analysis.attemptId}
+                    className="grid gap-4 p-5 sm:grid-cols-[1fr_1fr_auto]"
+                  >
+                    <div>
+                      <h4 className="text-sm font-semibold">
+                        {concept?.title ?? "Previous course concept"}
+                      </h4>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {new Date(a.updatedAt).toLocaleString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm">
+                        {humanLabel(a.analysis.diagnosis.label)}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {a.analysis.diagnosis.decisionProvider ===
+                        "generative-baseline"
+                          ? "Generative fallback"
+                          : "Jev decision"}{" "}
+                        · hypothesis
+                      </p>
+                      {a.verification && (
+                        <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                          {a.verification.reason}
+                        </p>
+                      )}
+                    </div>
+                    <Badge variant="outline" className="h-fit w-fit">
+                      {statusLabels[status]}
+                    </Badge>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        )}
+      </section>
+      <section aria-labelledby="cohort-heading" className="border-t pt-8">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <FlaskConical className="size-5 text-primary" />
+          <h2 id="cohort-heading" className="text-xl font-semibold">
+            An illustrative cohort
+          </h2>
+          <Badge variant="outline">Fixed synthetic data</Badge>
+        </div>
+        <p className="mb-6 max-w-3xl text-sm leading-6 text-muted-foreground">
+          {cohort.disclosure} Each learner has one illustrated attempt per
+          concept. Your browser session is never added to these counts.
+        </p>
+        <div className="grid gap-4 lg:grid-cols-3">
+          {cohort.concepts.map((row) => (
+            <Card key={row.conceptId} className="shadow-none">
+              <CardHeader>
+                <CardDescription>
+                  {row.attempts} synthetic attempts
+                </CardDescription>
+                <CardTitle className="text-base leading-6">
+                  {course.concepts.find((c) => c.id === row.conceptId)?.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div
+                  className="mb-4 flex h-2 overflow-hidden rounded-full"
+                  aria-hidden="true"
+                >
+                  <span
+                    className="bg-primary"
+                    style={{ width: `${(row.verified / row.attempts) * 100}%` }}
+                  />
+                  <span
+                    className="bg-amber-500"
+                    style={{
+                      width: `${(row.needsPractice / row.attempts) * 100}%`,
+                    }}
+                  />
+                  <span
+                    className="bg-slate-300"
+                    style={{
+                      width: `${(row.educatorReview / row.attempts) * 100}%`,
+                    }}
+                  />
+                </div>
+                <dl className="space-y-2 text-xs">
+                  {[
+                    [row.verified, "Understanding checked"],
+                    [row.needsPractice, "Need more practice"],
+                    [row.educatorReview, "For educator review"],
+                  ].map(([n, label]) => (
+                    <div key={label} className="flex justify-between gap-3">
+                      <dt className="text-muted-foreground">{label}</dt>
+                      <dd className="font-medium tabular-nums">{n}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <div className="mt-5 border-t pt-4">
+                  <p className="eyebrow mb-2">ILLUSTRATIVE REASONING GAP</p>
+                  <p className="text-sm leading-6">{row.pattern}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {row.count} of {row.attempts} authored examples
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <p className="mt-5 text-xs leading-6 text-muted-foreground">
+          Use these patterns to plan a discussion, not to grade students. A
+          future pilot needs consented examples, faculty labels, unseen
+          questions and delayed recall checks.
+        </p>
+      </section>
     </div>
   );
 }
