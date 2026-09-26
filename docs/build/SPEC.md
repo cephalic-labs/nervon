@@ -102,6 +102,8 @@ The team can rename files when implementation demands it, but preserve the separ
 
 The course pack is a local JSON file. Each concept includes an ID, learning objective, short approved source snippets with IDs, misconception labels with plain-language criteria, and at least two questions with distinct IDs. Question keys and verification rubrics remain server-side.
 
+The Day 1 pack uses schema version 1 and content version 1.0.0. Its challenge-authored source summaries are pending educator review, not university-approved material. Browser-safe types and input limits are defined in `lib/contracts.ts`; the detailed endpoint handoff is in [API-CONTRACT.md](API-CONTRACT.md).
+
 ### Analyze request
 
 ```ts
@@ -142,6 +144,10 @@ type AnalyzeResponse = {
 
 `POST /api/verify` accepts `attemptId`, `nextQuestionId`, `answer`, and `explanation`. It returns `status` (`verified`, `needsPractice`, or `educatorReview`) and a short reason. The browser appends the result to its local session; there is no server-side student database.
 
+The future `attemptId` is an opaque signed token binding the course-pack version, original question, assigned verification question, and local session ID, with a two-hour expiry. Include no student responses or assessment keys. Invalid, expired, or mismatched tokens receive HTTP 400. Signing and endpoint implementations belong to later milestones.
+
+When evidence is insufficient or contradictory enough to prevent a defensible diagnosis, return `reviewRequired: true`, `feedback: null`, and `nextQuestion: null`. The UI requests clarification or educator review before advancing.
+
 Validate required fields, length limits, and all IDs on the server. A malformed request gets an explicit 400 response. A failed provider call gets a visible error or a **disclosed live-model fallback**, never a canned diagnosis masquerading as inference.
 
 ## 6. AI behavior
@@ -181,7 +187,7 @@ A small dummy set can test that fine-tuning and the adapter work; it cannot esta
 | 12:00–13:30 | Get `/api/analyze` working with a real generative API; add Jev adapter and validation. | Complete learner journey and connect to the live endpoint. |
 | 13:30–14:45 | Test varied explanations; implement verification and review state. | Build educator aggregation and local session state. |
 | 14:45–16:00 | Integrate and handle invalid input, source checks, and model failures. | Polish screens and run the journey with fresh inputs. |
-| 16:00–17:00 | Freeze and upload code before cutoff; prepare technical answers. | Make exactly one Day 1 slide and rehearse the seven-minute demo. |
+| 16:00–16:30 | Freeze and upload code by the 4:30 pm cutoff; prepare technical answers. | Finalize exactly one Day 1 slide and rehearse the seven-minute demo. |
 | 17:00–17:30 | Keep the local build running and present. | Check browser/network and rehearse the handoff. |
 
 Give coding agents non-overlapping files and one integration owner. An optional background agent may prepare the Laya data and notebook, provided this takes no time from the two participants' integration work. Make no use of private or proprietary pre-challenge team code. Any eligible public code, model, or content used must be disclosed as required by the event brief.
