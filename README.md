@@ -7,18 +7,16 @@ different question → verification → a local session and educator summary.
 
 ## Current milestone
 
-Implemented: versioned course pack with three concepts and six questions,
-question-specific rubrics and verification keys, attributed snippets, shared API
-types, a server-only course reader, safe public projections, and development tests.
-The second milestone adds `/api/analyze`, validated OpenRouter Jev and generative
-adapters, input validation, grounded feedback checks, and signed attempt tokens.
+Implemented: versioned course pack with three Classical Genetics concepts and six
+questions, question-specific rubrics and verification keys, attributed snippets,
+shared API types, a server-only course reader, safe public projections,
+`/api/analyze` (Jev + generative adapters, input validation, grounded feedback,
+signed attempt tokens), `/api/verify` (token signature check, generative rubric
+assessment), and development tests.
 
-Not yet implemented: `/api/verify`, token signature verification, local session
-persistence, or synthetic cohort data. The latest live synthetic smoke run passed
-all six examples; this verifies integration, not educational accuracy.
-Existing pages are
-layout scaffolds and still show Statistics content. Their feedback is placeholder
-text, not AI inference. Do not present this milestone as the finished demo.
+Synthetic cohort data and Laya integration remain outside the critical demo path.
+The latest live synthetic smoke run passed all six examples; this verifies
+integration, not educational accuracy.
 
 ## Local setup
 
@@ -63,12 +61,9 @@ resolves `server-only` to
 Next's server marker; it does not change app behavior. A Node module-format warning
 may appear because the existing scaffold does not declare an ESM package type.
 
-Validation at this milestone: tests, TypeScript, and targeted lint passed. Full
-repo lint finds three existing `react/no-unescaped-entities` errors in
-`components/FeedbackPanel.tsx`; Yaazh should escape the placeholder punctuation.
-The production build passed using `npm run build -- --webpack`. Turbopack's
-build worker could not bind a port in the implementation environment. The existing
-Geist font setup also requires network access to Google Fonts during builds.
+Validation at this milestone: tests, TypeScript, and lint passed with zero errors.
+The production build passed with Turbopack. The existing Geist font setup requires
+network access to Google Fonts during builds.
 
 ## Explicit live acceptance check
 
@@ -118,13 +113,11 @@ Space Bunny has not been tested and requires its own live check before selection
   and authored expectations. They are not imported by the app and must never be
   served as live AI results.
 
-For Yaazh: replace Statistics text in the course entry, learner question, and
-educator summary; connect course metadata and questions through the public
-projection; show the synthetic-content disclosure. Connect the answer/explanation
-form to `POST /api/analyze` using the existing
-shared contracts. Review responses have no feedback or next question; supported
-responses provide both. Display `decisionProvider` so fallback is disclosed.
-Verification submission and educator aggregation remain later milestones.
+For Yaazh: Classical Genetics content and the full learner journey (analyze,
+feedback, verification, educator sync) are connected through live endpoints.
+Verification submission calls `POST /api/verify` using the signed `attemptId`
+token; the result is stored in the local demo session and reflected in the
+educator view. Review states keep the initial form enabled for retry.
 
 ## Content, sources, and disclosure
 
