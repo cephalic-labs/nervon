@@ -193,11 +193,12 @@ export function createCoachHandler(dependencies: Dependencies = {}) {
             "Understanding is not established yet. Work through the steps below at your own pace, then start a fresh practice session. Nervon will keep guiding you.";
         }
       } else {
-        const first = state.turns[0];
+        // Anchor classification on the latest evidence; retain prior turns for corrections.
+        const latest = state.turns[state.turns.length - 1];
         const assessmentContext = {
           ...context,
-          answer: first.answer,
-          explanation: first.explanation,
+          answer: latest.answer,
+          explanation: latest.explanation,
           ...(state.turns.length > 1
             ? {
                 dialogue: state.turns.map((t) => ({
@@ -258,6 +259,13 @@ export function createCoachHandler(dependencies: Dependencies = {}) {
             usage: generated.usage,
           });
         }
+        if (
+          assessment.feedback &&
+          /\b(?:ask|contact|consult|refer|discuss|speak|talk).{0,60}\b(?:teacher|educator|instructor)\b/i.test(
+            assessment.feedback.text,
+          )
+        )
+          throw new ProviderError("HUMAN_HANDOFF");
         state = {
           ...state,
           diagnosis: {
@@ -273,7 +281,11 @@ export function createCoachHandler(dependencies: Dependencies = {}) {
           .map((t) => t.questionId);
         const probe =
           assessment.reviewRequired && used.length < 2
-            ? selectProbe(state.questionId, used, assessment.label)
+            ? selectProbe(
+                state.questionId,
+                used,
+                decision?.distribution.pattern.choice ?? assessment.label,
+              )
             : null;
         if (probe) {
           state = {

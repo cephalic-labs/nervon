@@ -102,6 +102,10 @@ test("uncertainty asks a grounded probe, uses its answer to reassess, then verif
   assert.match(first.state.pending.prompt, /Pp/);
   assert.equal(first.lesson, null);
   const second = (await app.send(next(first, "Pp can be purple."))).data;
+  assert.equal(
+    app.calls[1].state.studentResponse.explanation,
+    "Pp can be purple.",
+  );
   assert.equal(second.state.phase, "verify");
   assert.equal(second.state.pending.id, "genotype-phenotype-2");
   assert.equal(
@@ -182,4 +186,27 @@ test("provider failures stay visible and fallback remains disclosed", async () =
   assert.equal(data.state.diagnosis.decisionProvider, "generative-baseline");
   const broken = setup([new Error("offline"), new Error("offline")]);
   assert.equal((await broken.send(initial)).status, 502);
+});
+
+test("an uncertain candidate guides probe selection without becoming a diagnosis", async () => {
+  const decision = jev();
+  decision.answers.pattern.choice = "recessive-allele-disappears";
+  for (const label of Object.keys(decision.answers.pattern.probabilities))
+    decision.answers.pattern.probabilities[label] =
+      label === "recessive-allele-disappears" ? 1 : 0;
+  const { data } = await setup([decision]).send(initial);
+  assert.equal(data.state.pending.id, "genotype-phenotype-1-probe-2");
+  assert.equal(data.state.diagnosis.label, "insufficient-evidence");
+  assert.equal(data.state.diagnosis.reviewRequired, true);
+});
+test("generated teacher handoffs fail visibly instead of entering the learning loop", async () => {
+  const app = setup([
+    jev(true),
+    {
+      ...sound,
+      evidence: "I guessed.",
+      feedbackText: "Ask your teacher to explain this concept.",
+    },
+  ]);
+  assert.equal((await app.send(initial)).status, 502);
 });
