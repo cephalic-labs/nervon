@@ -7,6 +7,14 @@ registerHooks({
     if (specifier === "server-only") {
       return nextResolve("next/dist/compiled/server-only/empty.js", context);
     }
-    return nextResolve(specifier, context);
+    try {
+      return nextResolve(specifier, context);
+    } catch (error) {
+      // Production imports follow Next/TypeScript extensionless conventions.
+      if (error.code === "ERR_MODULE_NOT_FOUND" && specifier.startsWith(".") && !/\.[a-z]+$/i.test(specifier)) {
+        return nextResolve(`${specifier}.ts`, context);
+      }
+      throw error;
+    }
   },
 });
