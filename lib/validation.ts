@@ -1,6 +1,6 @@
 import "server-only";
 import { INPUT_LIMITS } from "./contracts";
-import type { AnalyzeRequest } from "./contracts";
+import type { AnalyzeRequest, VerifyRequest } from "./contracts";
 import { getQuestion } from "./course";
 export class InvalidRequestError extends Error {
   constructor(message = "Provide a valid course question, answer, explanation, and demo session ID.") { super(message); }
@@ -21,5 +21,23 @@ export function validateAnalyze(value: unknown): AnalyzeRequest {
   return {
     courseId, questionId, answer: field("answer", INPUT_LIMITS.answer),
     explanation: field("explanation", INPUT_LIMITS.explanation), localSessionId: field("localSessionId", INPUT_LIMITS.localSessionId),
+  };
+}
+
+export function validateVerify(value: unknown): VerifyRequest {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new InvalidRequestError();
+  const data = value as Record<string, unknown>;
+  const field = (key: string, max: number) => {
+    if (typeof data[key] !== "string") throw new InvalidRequestError();
+    const text = data[key].trim();
+    if (!text || text.length > max) throw new InvalidRequestError(`${key} is required and must be at most ${max} characters.`);
+    return text;
+  };
+  
+  return {
+    attemptId: field("attemptId", INPUT_LIMITS.attemptId),
+    nextQuestionId: field("nextQuestionId", 128),
+    answer: field("answer", INPUT_LIMITS.answer),
+    explanation: field("explanation", INPUT_LIMITS.explanation),
   };
 }
