@@ -1,11 +1,61 @@
 # Learner API handoff
 
-Status: `/api/analyze`, `/api/verify`, OpenRouter adapters, and attempt signing
-with timing-safe signature verification are implemented. Live model
-acceptance requires a complete pass of the explicit smoke test. The latest run
-passed all six synthetic cases with Jev and DeepSeek V4.1 Flash; Space Bunny is
-untested, and this check does not establish educational accuracy.
-Shared browser-safe types live in `lib/contracts.ts`.
+`POST /api/coach` is the current learner API. It implements autonomous clarification,
+subject-grounded teaching and guided practice. No human review is required to
+continue. Browser-safe types are in `lib/contracts.ts`.
+
+## POST /api/coach
+
+First request: `{courseId, questionId, answer, explanation, localSessionId}`.
+Next request: `{answer, explanation, continuation: {state, token}}`, where `state`
+and `continuationToken` come from the previous response. The browser must preserve
+state exactly; it must not edit history, diagnosis, stage, question or session ID.
+
+Response: `{state, continuationToken, message, lesson}`. State includes a stable
+conversation `id`, course and knowledge versions, original question/session IDs,
+issue time, ordered `turns`, `phase`, `pending` question, tentative `diagnosis`,
+`feedback`, and `result`. `lesson` is either null or an explicitly authored,
+sourced key idea, worked example and study plan from the knowledge base.
+
+| Phase | Student action | Transition |
+| --- | --- | --- |
+| clarify | Answer a focused diagnostic probe | Reassess; another distinct probe or teaching/check |
+| verify | Answer the different same-concept question | Complete if verified, otherwise guided retry |
+| retry | Apply the worked example to the same check | Complete with verified, needsPractice or needsClarification |
+| complete | Read the result and choose further practice | No continuation token; start a new conversation |
+
+At most two probes and one retry, for five sequential answers. Unresolved evidence
+never forces a diagnosis or a success claim. Initial reviewRequired means the
+reasoning is uncertain; it triggers questions or foundations, not an educator.
+A successful second-question check does not retroactively validate an uncertain
+initial diagnosis or prove retention.
+
+Latest reasoning is primary model evidence; earlier prompts, answers and
+explanations remain ordered context. Probe selection uses the question and an
+uncertain candidate hypothesis where available, without asserting that candidate
+as fact. Exact evidence and source checks remain mandatory. Jev failure uses one
+disclosed live generative fallback. Teaching failures and generated human handoffs
+are visible HTTP 502 failures, never canned model feedback.
+
+Input limits after trimming: answer 2,000, explanation 4,000, session ID 128,
+continuation token 2,048 characters. Request JSON is limited to 100,000 characters;
+serialized continuation state to 60,000. IDs and required fields are validated
+before inference. A bad continuation is `400 INVALID_ATTEMPT`; other errors use
+the envelope and codes below. All responses carry no-store and X-Request-Id.
+
+The continuation token authenticates a SHA-256 state digest using HMAC-SHA256 with
+a `nervon-coach-v1:` domain prefix. Its base64url JSON payload has `version: 1`,
+`digest`, `issuedAt` and `expiresAt`; the second dot-separated part is its signature.
+It contains no learner text, private keys or rubric criteria. Signature comparison
+is timing-safe. Expiry is fixed at the first answer + 7,200 seconds. State/version
+changes, future issue times, expiration and completed states are rejected before
+provider calls. Replay within expiry is allowed; this is not authentication.
+
+## Compatibility primitives
+
+The original endpoints below remain available for existing tests/integrations.
+Their legacy uncertainty names do not create human workflow. The current browser
+calls `/api/coach` exclusively and maps uncertainty to self-guided next steps.
 
 ## POST /api/analyze
 
@@ -17,7 +67,7 @@ Assess reasoning, not just the final answer. An incorrect explanation paired wit
 a correct answer may still support a misconception diagnosis. For insufficient,
 ambiguous, unrelated, or contradictory evidence that prevents a defensible
 diagnosis, return `reviewRequired: true`, `feedback: null`, and `nextQuestion: null`.
-The UI requests clarification or educator review. Otherwise return grounded
+Legacy callers must treat this as uncertainty. Otherwise return grounded
 feedback with source IDs belonging to the concept and a different question within
 that concept. Jev failure may use a live generative fallback labelled
 `decisionProvider: "generative-baseline"`. Never serve development fixtures here.
@@ -135,20 +185,20 @@ providers once live inference exists; they do not establish diagnostic accuracy.
 
 ## Browser integration
 
-The responsive learner and educator screens share `nervon-session-v1` in
-localStorage. Up to 50 attempts retain public analysis responses and verification
-results; answers and full submitted explanations are not retained, though quoted
-reasoning evidence is. Tokens remain opaque and are never decoded in client code.
-The UI validates response shapes, question pairing and source IDs before saving.
-An expired check offers a fresh attempt. Reset creates a new random session ID;
-in-flight results for a reset session are discarded.
+Personal Progress and Practice share `nervon-session-v1`. Up to 20 coaching
+conversations retain the public transcript (answers and explanations), feedback,
+continuation and final check, alongside earlier attempt records. Every update
+replaces the same conversation ID. The browser checks response shape, session and
+course binding, pending-question membership and source IDs before saving.
 
-This is local demo state, not authentication or a trusted student record. Reload
-restores feedback and completed checks; unsubmitted form text is not persisted.
-Same-origin tabs update via storage events. Blocked storage falls back to memory
-with a visible disclosure. Fixed cohort data remains separate from live attempts.
+Selecting a history row resumes that exact conversation. Reload preserves completed
+steps; unsubmitted drafts are not saved. Reset creates a new random session and
+clears both old and new records; in-flight results from a reset session are rejected.
+Storage events synchronize tabs; blocked storage uses memory with a visible notice.
+The previous educator URL redirects to personal progress. The fixed synthetic
+cohort is no longer displayed or combined with learner data.
 
-`npm run smoke:journey` exercises a fresh live explanation through analyze, verify,
-and educator persistence in Chromium. `npm run test:e2e` instead uses explicitly
-intercepted synthetic responses for deterministic UI testing; those fixtures are
-never served by the application.
+`npm run smoke:coach` exercises live clarification and guided retry paths.
+`npm run smoke:journey` drives a fresh live browser conversation and persistence.
+`npm run test:e2e` uses explicitly intercepted development responses instead;
+these are not imported or served by the app.

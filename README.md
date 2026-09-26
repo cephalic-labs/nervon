@@ -1,176 +1,125 @@
 # Nervon
 
-A university learning-coach prototype for Builders Pitch Fest, EdTech AI track.
-The sample course is **Classical Genetics (Biology)**. The intended loop is an
-explained answer → possible concept diagnosis → source-grounded feedback → a
-different question → verification → a local session and educator summary.
+A self-guided Classical Genetics learning coach. Explain an answer; Nervon asks
+focused diagnostic questions when needed, teaches from a subject knowledge base,
+and checks the idea in another question.
 
-## Current milestone
+## What works
 
-The Day 1 implementation is complete locally: six Classical Genetics questions,
-private keys and rubrics, live `/api/analyze` and `/api/verify`, strict signed
-attempt binding, responsive shadcn learner screens, persistent browser history,
-and an educator view with live results separate from a fixed synthetic cohort.
-Feedback and checks survive navigation and reload. Unsubmitted form text does not.
-Browser storage keeps at most 50 attempts and can be reset from Educator.
+- Three genetics concepts, six questions and twelve diagnostic probes.
+- Jev reasoning decisions and DeepSeek source-grounded feedback through OpenRouter.
+- Up to two clarifications, followed by teaching and a different same-concept check.
+- One guided retry after an unsuccessful check; unresolved reasoning receives a
+  concrete self-study plan without a false claim of understanding.
+- Resumable conversations and personal **Progress**, including previous-version
+  history. `/educator` redirects to `/progress`; no educator action is required.
+- Responsive shadcn Base UI controls, attributed reading and visible errors.
 
-Open `/demo` for the editable one-slide presentation, or use the
-[one-page PDF](docs/demo/nervon-day-1.pdf). The
-[seven-minute runbook and acceptance results](docs/demo/REHEARSAL.md) cover the
-handoff. Publishing/upload and the human presentation remain team actions; no
-remote push was made. Laya is optional and remains outside this milestone.
+The knowledge base is deliberately limited to the demo's three concepts. Questions,
+probes and worked examples are authored material; diagnoses and checks use live
+models. Authored scaffolds are labelled separately from model feedback. There is
+no LMS, student database or general-purpose textbook retrieval service.
 
-## Local setup
+## Setup
 
-Use **Node.js 24.21 or later in the Node 24 release line** and npm. The tests use
-Node's native TypeScript stripping, module hooks, and built-in test runner.
+Use Node.js 24.21 or later in the Node 24 line and npm.
 
 ```sh
 npm ci
 cp .env.example .env.local
+openssl rand -hex 32
 npm run dev
 ```
 
-Open [localhost:3000](http://localhost:3000). The current screens render without
-credentials, but analyze requires both the OpenRouter key and signing secret.
-Populate these server-only values before calling either endpoint; never prefix secrets
-with `NEXT_PUBLIC_` or commit `.env.local`.
+Put an OpenRouter key in `OPENROUTER_API_KEY` and the generated secret in
+`ATTEMPT_SIGNING_SECRET`. Open [localhost:3000](http://localhost:3000).
+Do not commit `.env.local` or expose secrets with `NEXT_PUBLIC_`.
 
-- `OPENROUTER_API_KEY`: one server-only credential for both model adapters.
-- `OPENROUTER_JEV_MODEL`: defaults to `typesafe/jev-1.13`.
-- `OPENROUTER_GENERATIVE_MODEL`: defaults to `deepseek/deepseek-v4.1-flash`.
-  Set `stealth/space-bunny-alpha` to explicitly select the preview alternative.
-  There is no automatic generative-model switching.
-- `ATTEMPT_SIGNING_SECRET`: use at least 32 random bytes, encoded as hex or
-  base64. The server rejects values shorter than 32 UTF-8 bytes after trimming.
-  Generate one with `openssl rand -hex 32`. Rotating it invalidates every outstanding attempt token, so unverified learners
-  must restart from analyze.
+Defaults: `OPENROUTER_JEV_MODEL=typesafe/jev-1.13` and
+`OPENROUTER_GENERATIVE_MODEL=deepseek/deepseek-v4.1-flash`.
+`stealth/space-bunny-alpha` is an explicit alternative, not an automatic fallback;
+it has not been accepted with this course. There are no application retries.
+Jev has a 10-second timeout; each generative request has a 30-second timeout.
 
 ## Checks
 
 ```sh
 npm test
-npm exec next typegen
 npx tsc --noEmit
-npx eslint lib tests scripts app/api
 npm run lint
 npm run build
-```
-
-Thirty-five offline tests cover course privacy and pairing, model validation,
-timeouts, fallback, request limits, signed-token validity, verification outcomes,
-session integrity and cohort consistency. TypeScript, lint and the production
-Turbopack build pass. Geist fonts require network access at build time.
-
-For browser tests, start the app in a separate terminal, then run:
-
-```sh
 npx playwright install chromium
+# With the local app running:
 npm run test:e2e
 ```
 
-Eighteen Chromium tests cover desktop (1440px), phone (390px) and narrow phone
-(320px) layouts, keyboard entry, axe accessibility scans, the complete learner
-loop, reload/cross-tab state, reset, blocked storage, review and provider failures.
-These tests intercept API requests with labelled development fixtures and incur
-no model usage. The same suite passed against the production server. Screenshots
-and failure traces are in ignored `test-results/`.
+46 offline tests cover course privacy, knowledge integrity, provider validation,
+legacy contracts, tokens, adaptive transitions, history integrity and persistence.
+18 Chromium browser tests cover desktop (1440px), phone (390px), narrow phone
+(320px), accessibility scans, keyboard submission, clarification, guided retry,
+errors, reset, cross-tab updates and selecting older conversations. Browser tests
+intercept requests with explicit development fixtures; they do not use live models.
+Screenshots and failure traces go to ignored `test-results/`.
+
+Explicit live checks (incur model usage; separate from offline tests):
 
 ```sh
-npm run build
-npm start -- --port 3002
-# In another terminal:
-NERVON_SMOKE_BASE_URL=http://localhost:3002 npm run test:e2e
+npm run smoke:coach     # Clarification → revised diagnosis; uncertainty → guided retry
+npm run smoke:journey   # Fresh live browser conversation and saved personal progress
+npm run smoke:analyze   # Six original single-turn adapter regression examples
 ```
 
-## Explicit live acceptance check
+Use `NERVON_SMOKE_BASE_URL=http://localhost:3003` for another local port.
+`smoke:coach` and `smoke:analyze` exit 2 if local credentials are missing; acceptance
+failures exit nonzero. These synthetic examples validate integration, not accuracy
+or learning impact. Build-time Geist font downloads require network access.
 
-Fill `.env.local` with the OpenRouter key and a signing secret, then restart the
-app to load them. With the server running in another terminal:
+## Knowledge and state
 
-```sh
-npm run smoke:analyze
-npm run smoke:journey
-```
+`data/classical-genetics-course.json` contains private question keys and rubrics.
+`data/genetics-knowledge.json` adds prerequisites, question-specific diagnostic
+probes, worked examples and step-by-step plans with existing source IDs. Retrieval
+is a server-side lookup by concept and question, not arbitrary generated content.
 
-Use `NERVON_SMOKE_BASE_URL=http://localhost:3001` for a different local port.
-These commands make real synthetic-data requests through the local APIs and may
-incur OpenRouter charges. They are separate from `npm test` and `npm run test:e2e`, which never call live
-providers. For `smoke:analyze`, missing credentials yield exit code 2 and no requests;
-failed checks or diagnostic mismatches yield 1; passing checks yield 0. The browser
-journey requires Chromium and exits nonzero on a failed endpoint or UI assertion.
+The `/api/coach` endpoint assesses the latest explanation with the ordered dialogue
+as context. An uncertain candidate can select a probe but cannot become a confirmed
+diagnosis. Malformed output, invented evidence, unknown sources and teacher-handoff
+feedback fail visibly. See [the API handoff](docs/build/API-CONTRACT.md) and
+[coaching design](docs/build/COACH-LOOP.md).
 
-Results include expected/actual labels, provider, review state, end-to-end latency,
-and request ID. Correlate request IDs with server logs for actual model IDs,
-per-call latency, Jev distributions, and available usage metrics. A mismatch needs
-manual review; these examples cannot establish diagnostic accuracy. The smoke
-script sends authored student explanations, never canned model responses.
+Continuation tokens authenticate a digest of the exact conversation state and
+expire after two hours from the first answer. Tokens contain no student text or
+answer keys; the public transcript travels separately and is checked before any
+provider request. Rotating the signing secret invalidates continuations. They are
+not authentication or proof of educational mastery. Replays are allowed within
+expiry; one entry per conversation prevents duplicate progress counts.
 
-Failed model calls log the stage (`decision`, `feedback`, or `baseline`) and a
-safe reason such as `TIMEOUT`, `HTTP_ERROR`, `INVALID_EVIDENCE`, or
-`INVALID_SOURCE_IDS`. HTTP failures include the upstream status, but never the
-upstream error body. The public API keeps its safe `PROVIDER_FAILURE` response.
+Up to 20 coaching conversations (including answers and explanations) are saved in
+this browser, alongside up to 50 earlier attempts. Reset clears both. Unsubmitted
+form drafts are not saved. Blocked browser storage uses memory with a visible
+warning. Use synthetic inputs only; no real student records belong in this demo.
 
-The latest live smoke run passed all six examples using Jev and DeepSeek V4.1
-Flash (456–15,201ms). A fresh live browser journey also passed analyze → verify →
-educator persistence (3,533ms analyze; 1,823ms verify). Earlier testing observed a
-provider timeout, so latency remains variable. Space Bunny has not been tested.
+## Sources and disclosure
 
-Export the single slide with `npm run slide:export`. This uses the running local
-server and Chromium and writes `docs/demo/nervon-day-1.pdf` (one 16:9 page).
-
-## Integration handoff
-
-- Read [the build spec](docs/build/SPEC.md) and [the API contract](docs/build/API-CONTRACT.md).
-- Import browser-safe types and limits from `lib/contracts.ts`.
-- Import `getPublicCourse("classical-genetics")` from `lib/course.ts` only in a
-  Server Component or Route Handler. Pass its returned data to interactive UI.
-- Use private `getCourse` and `getQuestion` only in server-side assessment code.
-  `getQuestion` returns `{ concept, question }`; never serialize that object.
-- `getVerificationQuestion(courseId, originalQuestionId)` returns the other
-  question in the same concept, containing only ID and prompt. Unknown IDs throw;
-  analyze maps invalid request IDs to HTTP 400.
-- Never import the course JSON directly into client modules. Answer keys,
-  required reasoning, diagnostic rubrics, and verification rubrics are private.
-- Development fixtures under `tests/fixtures` contain invalid placeholder tokens
-  and authored expectations. They are not imported by the app and must never be
-  served as live AI results.
-
-For Yaazh: Classical Genetics content and the full learner journey (analyze,
-feedback, verification, educator sync) are connected through live endpoints.
-Verification submission calls `POST /api/verify` using the signed `attemptId`
-token; the result is stored in the local demo session and reflected in the
-educator view. Review states keep the initial form enabled for retry.
-
-## Content, sources, and disclosure
-
-The course pack is `data/classical-genetics-course.json`, schema version 1,
-content version 1.0.0, course ID `classical-genetics`. It covers genotype/phenotype
-and complete dominance, segregation and monohybrid crosses, and independent
-assortment for unlinked genes. Questions use explicit synthetic model assumptions;
-expected probabilities do not guarantee exact counts in small samples.
-
-Questions, rubrics, and test examples are challenge-authored and synthetic.
-Snippets are short authored summaries checked against **OpenStax Biology 2e,
-OpenStax / Rice University**:
+Course snippets and new learning scaffolds are authored adaptations of
+**OpenStax Biology 2e, OpenStax / Rice University**:
 
 - [12.2 Characteristics and Traits](https://openstax.org/books/biology-2e/pages/12-2-characteristics-and-traits)
 - [12.3 Laws of Inheritance](https://openstax.org/books/biology-2e/pages/12-3-laws-of-inheritance)
 
-The textbook uses [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
-Attribute these sources and retain those terms for the adapted snippets; verify
-reuse terms before use beyond this demo. This is a content attribution, not a
-blanket license for the repository. All content is **pending educator review**;
-do not describe it as university-approved material or validated diagnostic data.
+Retain attribution and [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+terms for adapted content. Content and diagnoses are not independently validated.
+Complete dominance and unlinked-gene assumptions apply where stated. Immediate
+success does not establish lasting recall. Future validation should use consented
+examples, independent subject-expert labels, unseen scenarios and delayed recall;
+this is separate from the autonomous student workflow.
 
-No private pre-challenge team code or real student records are included in this
-foundation. The app uses public Next.js, React, TypeScript, Tailwind, shadcn/Base UI and Lucide
-packages; installed package licenses remain applicable. No LMS, registrar,
-payment, placement, or student-record integration exists.
+Public Next.js, React, TypeScript, Tailwind, shadcn/Base UI, Lucide, Playwright and
+axe packages retain their respective licenses. No private pre-challenge team code,
+LMS connection, deployment or remote push is part of this implementation.
 
-A diagnosis is a hypothesis from a student's explanation, and insufficient
-evidence requires clarification or educator review. Live model confidence is not
-validated educational accuracy; immediate verification is not lasting learning.
+## Presentation
 
-The event deliverables are a working prototype, exactly one slide, and uploaded
-code by **26 September 2026, 4:30 pm IST**. Laya remains outside the critical path.
+Open `/demo` or use the [one-slide PDF](docs/demo/nervon-day-1.pdf).
+`npm run slide:export` regenerates it from the running app using Chromium.
+See the [seven-minute rehearsal and acceptance report](docs/demo/REHEARSAL.md).

@@ -1,47 +1,62 @@
-# Day 1 demo handoff
+# Autonomous Nervon demo handoff
 
-Presentation: [one-page PDF](nervon-day-1.pdf). Editable slide: `/demo` (`app/demo/page.tsx`).
-Re-export with `npm run slide:export` while the local server is running. Chromium is
-required (`npx playwright install chromium`). The export was checked with
-`pdfinfo`: exactly one page, 960 × 540 points (16:9).
+Use the [one-page PDF](nervon-day-1.pdf), editable at `/demo` in
+`app/demo/page.tsx`. Export with `npm run slide:export` against the running app.
+The slide is 16:9 and must remain exactly one page.
 
 ## Seven-minute run
 
-| Time | Presenter | Action |
-| --- | --- | --- |
-| 0:00–0:45 | Yaazh | Show the slide. Explain the problem, synthetic assumptions and learning loop. |
-| 0:45–1:15 | Yaazh | Open Practice, choose genotype/phenotype. Point out the requirement to explain. |
-| 1:15–2:15 | Saumyajit | Enter `PP only`; explain `Purple is dominant, so both alleles must be P.` Submit live. Explain that the returned label is a hypothesis. |
-| 2:15–3:00 | Saumyajit | Read the evidence and source-grounded feedback. Expand the OpenStax reading. Point out provider disclosure. |
-| 3:00–4:00 | Yaazh | Answer the red-flower follow-up: `RR or Rr; r can be present.` Explain that one R masks r without eliminating it. Submit the live check. |
-| 4:00–4:45 | Yaazh | Open Educator: show the saved verification, then distinguish the fixed synthetic cohort. Refresh to show persistence. |
-| 4:45–6:15 | Saumyajit | Start a new attempt and accept fresh judge wording. If needed use `I guessed.` to show the honest review state. Allow time for provider latency. |
-| 6:15–7:00 | Both | Explain next validation: consent, faculty labels, unseen scenarios, per-label errors, and delayed recall. |
+| Time | Action |
+| --- | --- |
+| 0:00–0:45 | Show the slide: a score does not expose reasoning. Nervon investigates, teaches and checks independently. State the synthetic-data assumption. |
+| 0:45–1:30 | Open Practice → genotype/phenotype. Answer `PP or Pp`, explain `I guessed.` Submit live. |
+| 1:30–2:30 | Read the targeted diagnostic question. Respond in your own words: one P can make Pp purple, p remains present, and appearance cannot distinguish PP from Pp. |
+| 2:30–3:15 | Show the changed diagnosis and feedback. Expand the course source. Explain that the knowledge base supplies probes and learning scaffolds; inference remains live. |
+| 3:15–4:15 | For the red-flower check, answer `RR or Rr; r may be present.` Explain that R masks the recessive phenotype without removing r. Submit. |
+| 4:15–5:00 | Open Progress, refresh and resume this exact conversation. No teacher referral or educator dashboard is involved. |
+| 5:00–6:15 | Accept fresh invented judge wording. If uncertainty persists, show the worked example and guided practice instead of claiming a misconception. |
+| 6:15–7:00 | Explain limitations: three concepts, unvalidated synthetic rubrics, model errors, no retention proof. Future evaluation uses independent expert labels and delayed recall. |
 
 ## Before presenting
 
-1. Run `npm ci`, set `.env.local`, `npm run build`, then `npm start`. Keep the server running.
-2. Run `npm run smoke:analyze` and `npm run smoke:journey` explicitly; both incur live API usage.
-3. Open `/demo`, `/learn`, and `/educator`. Reset the browser session once before the demonstration.
-4. Use invented student data only. No canned response belongs in the live path.
-5. Check the event upload destination and submit the reviewed code before the **4:30 pm IST** cutoff. No remote upload or push was performed by this implementation task.
+1. Set `.env.local`, run `npm run build`, then `npm start` and keep it running.
+2. Run `npm run smoke:coach` and `npm run smoke:journey` explicitly; these incur model usage.
+3. Open `/demo`, `/learn` and `/progress`. Reset personal progress before presenting.
+4. Allow for up to 10 seconds per Jev call and 30 seconds per generative call.
+5. Submit the reviewed code to the event destination before the original 4:30 pm IST
+   cutoff. This task does not upload or push remotely.
 
-## Failure and technical answers
+## Honest outcomes
 
-- A provider failure is visible. Preserve the student's text and retry manually; never substitute fixtures.
-- Uncertain reasoning asks for clarification or an educator. A generative fallback is explicitly disclosed.
-- Jev timeout: 10 seconds; generative call: 30 seconds; no application retries. Network conditions can vary.
-- Answer keys and rubrics stay server-side. Tokens are HMAC-signed, expire in two hours, and bind the course version and question pair.
-- Browser history stores up to 50 attempts, feedback/evidence and checks. No student database or identity system; clearing browser storage removes it. Verification replays replace the same result.
-- Immediate verification does not prove retention, mastery or diagnostic accuracy. Content and labels remain pending educator review.
-- Laya and LMS integration are outside this Day 1 critical path.
+- Unsupported reasoning asks a focused question, up to two distinct probes.
+- Persistent uncertainty gets a sourced foundational lesson and another question.
+- An unsuccessful check gets a worked example and one retry. Continued difficulty
+  ends with a self-study plan and an option to start again—not a handoff or success claim.
+- Model errors preserve the form for manual retry; no fixture is substituted.
+- Continuations expire in two hours and bind the exact history. They are not user
+  authentication. Private rubrics and keys remain server-side.
+- Browser storage retains up to 20 conversations, including student text. Use
+  invented examples only. Reset clears them; there is no student database.
 
-## Verified on 26 September 2026
+## Acceptance evidence — 26 September 2026
 
-- 35 offline tests; TypeScript, lint and production build passed.
-- 18 Chromium browser tests passed against both development and production: desktop 1440px, phone 390px, narrow phone 320px. No automated axe WCAG A/AA violations on the checked screens; keyboard skip link, no horizontal overflow, source rendering, cross-tab sync, persistence, reset, provider errors and all verification outcomes covered.
-- Six live analysis examples passed with `typesafe/jev-1.13` and `deepseek/deepseek-v4.1-flash`. Analyze latencies were 456–15,201ms. Unrelated reasoning mapped to insufficient evidence with review, rather than its authored exact label; this was accepted as uncertainty.
-- Fresh live browser journey: misconception diagnosis via Jev in 3,533ms; sound follow-up `verified` in 1,823ms; educator persistence confirmed. These are observed integration timings, not performance guarantees or educational validation.
-- Browser bundles checked for private rubric field names and server credential names; none found.
+- 46 offline tests pass, including knowledge coverage, exact evidence, source IDs,
+  provider failures, transcript tampering, expiry, bounded transitions and persistence.
+- 18 Chromium browser tests pass at 1440px, 390px and 320px. Tested clarification,
+  guided retry, unresolved plans, saved conversations, exact history selection,
+  errors, cross-tab updates, reset, blocked storage and keyboard submission. Axe
+  reported no violations in the tested screens/states.
+- Live API conversation: initial `I guessed` → clarify; corrected reasoning →
+  `sound-reasoning` in 13,060ms; follow-up → verified in 1,845ms.
+- Separate live API conversation: repeated uncertainty → two probes → sourced
+  lesson → needsPractice → guided retry → verified. Final retry took 4,035ms.
+- Fresh live browser conversation also passed: clarify → sound reasoning (5,782ms) →
+  verified (2,687ms), with personal progress preserved after reload.
+- TypeScript, lint and the production Turbopack build passed. The revised PDF exports
+  as exactly one 16:9 page.
+- An initial live test exposed anchoring on the original answer; the implementation
+  now sends the latest response as primary evidence with the full prior dialogue.
+  A regression test covers this. Timings are observations, not guarantees.
 
-The human rehearsal, event eligibility confirmation and upload remain presenter actions. The artifacts and technical implementation are ready locally.
+These checks establish integration, not educational accuracy. Human event
+presentation and external upload remain team actions.

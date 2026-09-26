@@ -24,8 +24,8 @@ export default function DemoPage() {
             An explanation shows where to help.
           </h1>
           <p className="mt-4 max-w-3xl text-base leading-7 text-white/80">
-            Students need a focused next step. Educators need to see recurring
-            reasoning gaps without inspecting every answer individually.
+            Students need focused questions that uncover their thinking,
+            subject-grounded explanations and another chance to practise.
           </p>
         </div>
         <section
@@ -36,10 +36,14 @@ export default function DemoPage() {
             ["01", "Explain", "Answer a genetics question in your own words."],
             [
               "02",
-              "Diagnose",
-              "Jev proposes a rubric-based reasoning pattern.",
+              "Investigate",
+              "Jev assesses reasoning; targeted probes resolve uncertainty.",
             ],
-            ["03", "Coach", "DeepSeek gives feedback from course sources."],
+            [
+              "03",
+              "Coach",
+              "DeepSeek and a subject knowledge base guide the next step.",
+            ],
             ["04", "Check", "A different question updates the session."],
           ].map(([n, title, text]) => (
             <div key={n}>
@@ -56,7 +60,8 @@ export default function DemoPage() {
             </h2>
             <p className="mt-2 text-sm leading-6 text-white/85">
               3 Classical Genetics concepts · 6 questions · source-grounded
-              feedback · honest review states · local educator view.
+              feedback · diagnostic follow-ups · guided retries · personal
+              progress.
             </p>
           </section>
           <section>
@@ -71,8 +76,8 @@ export default function DemoPage() {
         </div>
         <footer className="mt-6 border-t border-white/20 pt-4 text-xs leading-5 text-white/75">
           Synthetic course, student inputs and cohort illustration. AI diagnoses
-          are hypotheses, pending educator review. OpenStax Biology 2e sources;
-          no LMS integration. Live generative fallback is disclosed.
+          are hypotheses, not validated learning scores. OpenStax Biology 2e
+          sources; no LMS integration. Live generative fallback is disclosed.
         </footer>
       </article>
       <nav

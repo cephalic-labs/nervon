@@ -1,27 +1,52 @@
 # Autonomous subject coaching
 
-The student never needs a teacher handoff. Uncertainty triggers targeted evidence
-collection, not a confident diagnosis. Implement in local atomic slices:
+The learner never needs a teacher handoff. Uncertainty triggers evidence collection,
+then grounded teaching and practice. All slices are implemented locally.
 
-1. Add a versioned genetics knowledge base: prerequisites, two diagnostic probes
-   per question, a sourced worked example and concrete self-study steps. Test
-   coverage, source references and question/probe uniqueness.
-2. Add `/api/coach`: initial explained answer → up to two distinct probes →
-   grounded teaching → paired verification → one supported retry → explicit
-   completion or unresolved practice plan. Reuse live Jev and generative adapters;
-   all follow-up responses inform reassessment. Never substitute fixtures.
-3. Bind continuation to server-issued state with HMAC over a SHA-256 state digest.
-   Tokens contain routing/version/expiry and a digest, not student text or keys.
-   The public conversation transcript travels separately and cannot be altered
-   without invalidating the token. Two-hour fixed expiry, bounded five exchanges,
-   no database or new credentials. Replay is allowed; one session entry per
-   conversation prevents double-counting. Tokens are not user authentication.
-4. Replace educator navigation with personal progress. Preserve prior local
-   history, show the conversation, resume on reload, display sources and a clear
-   next action. Verify responsiveness, keyboard use, errors and all loop branches.
-5. Update the slide, documentation and live smoke script; run offline, browser,
-   production and fresh live acceptance checks.
+## Knowledge
 
-The original analyze/verify endpoints remain compatibility primitives. Their
-uncertain outcome is `needsClarification`, not educator review. Content quality
-review remains a separate future validation activity, never a learner dependency.
+The server retrieves by concept and original question from a versioned genetics
+knowledge base: prerequisites, two diagnostic probes per question, a worked example
+and concrete study steps. Sources resolve to the course's OpenStax attributions.
+Private hypothesis mappings and assessment keys never enter the browser.
+
+## State machine
+
+1. **Explain:** submit an answer and explanation to `/api/coach`.
+2. **Clarify:** uncertain reasoning selects an unused question-specific probe. A
+   candidate Jev label can guide the probe, without being asserted as a diagnosis.
+   The next response becomes the primary evidence; all prior exchanges provide
+   context. Explicit corrections can supersede earlier reasoning.
+3. **Teach and verify:** supported reasoning receives live grounded feedback and
+   the other question in that concept. After two unresolved probes, disclose the
+   uncertainty and offer an authored foundational example before the new question.
+4. **Retry:** an unsuccessful check returns a worked example and steps, then one
+   retry of the same check (labelled as a retry, not a new transfer question).
+5. **Complete:** record either immediate verification or an unresolved practice
+   plan. Unresolved does not mean mastered. A fresh session is always available.
+
+Maximum five sequential submitted responses per path: initial + two probes +
+check + retry. No automatic provider retries or infinite questioning.
+
+## Integrity and privacy
+
+The public transcript and server-produced state travel separately from an HMAC
+continuation token. The token authenticates a SHA-256 digest of the exact JSON
+state, using a domain-separated HMAC-SHA256 signature. It contains a version,
+digest, issue time and fixed two-hour expiry, with no response text or private keys.
+State tampering, expired or future-issued tokens, course/knowledge version changes,
+and attempts to continue a completed state fail before inference.
+
+No new secret or database is needed. A valid token can be replayed until expiry;
+this is not authentication or an assessment record. Browser updates replace the
+same conversation entry. Context and tokens are excluded from routine logs.
+
+## Compatibility
+
+`/api/analyze` and `/api/verify` remain tested single-turn compatibility primitives.
+Their old `reviewRequired`/`educatorReview` names represent uncertainty. The new
+learning path calls `/api/coach`, maps uncertainty to clarification or self-guided
+practice and never presents a human handoff. Old `/educator` bookmarks redirect to
+personal `/progress`; prior local attempt history is preserved as earlier practice.
+Content validation by independent experts is future evaluation work, not a learner
+workflow dependency.

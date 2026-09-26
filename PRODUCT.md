@@ -5,10 +5,10 @@
 product
 
 ## Users
-University students practising Classical Genetics and educators inspecting reasoning gaps during a synthetic demonstration.
+University students practising Classical Genetics independently during a synthetic demonstration.
 
 ## Product Purpose
-Turn an explained answer into a tentative reasoning diagnosis, source-grounded feedback and a different question; make uncertainty and subsequent progress visible.
+Use diagnostic conversation to understand an explained answer, teach from subject knowledge and verify through practice. Uncertainty leads to questions and scaffolding, never a teacher handoff.
 
 ## Brand Personality
 Calm, credible, supportive. The user approved a restrained green learning workspace.
@@ -20,7 +20,7 @@ Avoid grade-like diagnostic accuracy claims, noisy dashboards, decorative motion
 - Keep the next learning action clear.
 - Show evidence and sources beside feedback.
 - Distinguish hypotheses, uncertainty and verified immediate responses.
-- Keep live browser activity separate from the authored cohort.
+- Keep personal learning history, authored teaching material and live AI judgments distinct.
 
 ## Accessibility & Inclusion
 Responsive layouts, labelled controls, keyboard focus, adequate contrast, text alongside status colors and reduced-motion support.
