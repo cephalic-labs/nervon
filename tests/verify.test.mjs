@@ -168,7 +168,7 @@ test('malformed and mismatched attempts fail closed without a provider call', as
   const unknown = setup([], env);
   const response = await unknown.handler(request(body({ attemptId: attempt({ nextQuestionId: 'missing-question' }), nextQuestionId: 'missing-question' })));
   assert.equal(response.status, 400);
-  assert.equal((await response.json()).error.code, 'INVALID_REQUEST');
+  assert.equal((await response.json()).error.code, 'INVALID_ATTEMPT');
   assert.equal(unknown.calls.length, 0);
 });
 
