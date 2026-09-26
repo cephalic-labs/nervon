@@ -20,11 +20,11 @@ The Day 1 prototype addresses **academic progress and learning outcomes** in the
 
 ## 2. Demo scope
 
-Use **Introductory Statistics** as the one sample course, with three concepts:
+Use **Classical Genetics (Biology)** as the one sample course, with three concepts:
 
-1. Correlation versus causation.
-2. Sampling bias.
-3. Mean versus median.
+1. Genotype versus phenotype and dominant versus recessive alleles.
+2. Mendel's law of segregation and monohybrid crosses.
+3. Mendel's law of independent assortment for unlinked genes and dihybrid crosses.
 
 Prepare at least two distinct questions per concept, a short source snippet, an answer key, and a small misconception rubric. During the demo, enter two different explanations for the same question and show different diagnoses or an honest uncertainty state. Then accept a fresh response entered by a judge.
 
@@ -85,7 +85,7 @@ nervon/
 │   ├── FeedbackPanel.tsx
 │   └── EducatorSummary.tsx
 ├── data/
-│   ├── statistics-course.json   # Questions, keys, rubrics, source snippets
+│   ├── classical-genetics-course.json # Questions, keys, rubrics, source snippets
 │   └── synthetic-cohort.json
 ├── lib/
 │   ├── course.ts                 # Safe public projection of course data
@@ -106,7 +106,7 @@ The course pack is a local JSON file. Each concept includes an ID, learning obje
 
 ```ts
 type AnalyzeRequest = {
-  courseId: "intro-stats";
+  courseId: "classical-genetics";
   questionId: string;
   answer: string;
   explanation: string;
@@ -148,10 +148,10 @@ Validate required fields, length limits, and all IDs on the server. A malformed 
 
 ### Jev decision
 
-Send Jev the question, reference answer, student answer, explanation, and a concise rubric. For a correlation question, ask a `choice` question over a few patterns such as:
+Send Jev the question, reference answer, student answer, explanation, and a concise rubric. For a monohybrid-cross question under complete dominance, ask a `choice` question over a few patterns such as:
 
-- Treats association as proof of causation.
-- Recognizes a possible confounder or the limit of observational evidence.
+- Assumes a dominant phenotype always implies a homozygous dominant genotype.
+- Recognizes that a dominant phenotype can arise from either a homozygous dominant or a heterozygous genotype.
 - Gives unrelated reasoning.
 - Provides too little evidence to identify a pattern.
 
