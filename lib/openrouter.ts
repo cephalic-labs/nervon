@@ -32,6 +32,10 @@ export function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new ProviderError();
   return value as Record<string, unknown>;
 }
+/** Model IDs reach logs only through this allowlist. */
+export function safeModel(value: string, fallback: string) {
+  return /^[a-zA-Z0-9_./:~+-]{1,200}$/.test(value) ? value : fallback;
+}
 export function modelText(value: unknown, max: number): string {
   if (typeof value !== "string" || !value.trim() || value.length > max) throw new ProviderError();
   return value.trim();

@@ -41,7 +41,8 @@ with `NEXT_PUBLIC_` or commit `.env.local`.
   There is no automatic generative-model switching.
 - `ATTEMPT_SIGNING_SECRET`: use at least 32 random bytes, encoded as hex or
   base64. The server rejects values shorter than 32 UTF-8 bytes after trimming.
-  Rotate it to invalidate outstanding tokens when verify is implemented.
+  Rotating it invalidates every outstanding attempt token, so unverified learners
+  must restart from analyze.
 
 ## Checks
 
@@ -54,11 +55,14 @@ npm run lint
 npm run build
 ```
 
-Twenty offline tests cover the course foundation plus model transport, response
+Thirty offline tests cover the course foundation plus model transport, response
 validation, timeouts, request limits, fallback, review states, evidence quotations,
-source checks, signed token contents, and privacy. The test-only module hook
+source checks, signed token contents, privacy, and the whole verify path: signed
+attempt checks, request validation, rubric-driven verification, and every
+documented error code. The test-only module hook
 resolves `server-only` to
-Next's server marker; it does not change app behavior. A Node module-format warning
+Next's server marker and mirrors the `@/` alias; it does not change app behavior.
+A Node module-format warning
 may appear because the existing scaffold does not declare an ESM package type.
 
 Validation at this milestone: tests, TypeScript, and lint passed with zero errors.

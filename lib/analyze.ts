@@ -5,7 +5,7 @@ import { getCourse, getQuestion, getVerificationQuestion } from "./course";
 import type { Assessment } from "./decision";
 import { classifyWithJev } from "./jev";
 import { generateAssessment } from "./feedback";
-import { ConfigurationError, loadConfig, ProviderError } from "./openrouter";
+import { ConfigurationError, loadConfig, ProviderError, safeModel } from "./openrouter";
 import { signAttempt } from "./attempt";
 import { InvalidRequestError, validateAnalyze } from "./validation";
 
@@ -13,9 +13,6 @@ interface Dependencies {
   env?: () => NodeJS.ProcessEnv;
   fetcher?: typeof fetch;
   log?: (event: Record<string, unknown>) => void;
-}
-function safeModel(value: string, fallback: string) {
-  return /^[a-zA-Z0-9_./:~+-]{1,200}$/.test(value) ? value : fallback;
 }
 export function createAnalyzeHandler(dependencies: Dependencies = {}) {
   return async function analyze(request: Request): Promise<Response> {

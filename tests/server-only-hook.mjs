@@ -7,6 +7,10 @@ registerHooks({
     if (specifier === "server-only") {
       return nextResolve("next/dist/compiled/server-only/empty.js", context);
     }
+    // Mirror the tsconfig "@/*" alias so route modules import in standalone tests.
+    if (specifier.startsWith("@/")) {
+      return nextResolve(new URL(`../${specifier.slice(2)}.ts`, import.meta.url).href, context);
+    }
     try {
       return nextResolve(specifier, context);
     } catch (error) {

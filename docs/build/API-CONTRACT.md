@@ -1,7 +1,7 @@
 # Learner API handoff
 
-Status: `/api/analyze`, OpenRouter adapters, and attempt signing are implemented.
-`/api/verify` and signature verification remain the next milestone. Live model
+Status: `/api/analyze`, `/api/verify`, OpenRouter adapters, and attempt signing
+with timing-safe signature verification are implemented. Live model
 acceptance requires a complete pass of the explicit smoke test. The latest run
 passed all six synthetic cases with Jev and DeepSeek V4.1 Flash; Space Bunny is
 untested, and this check does not establish educational accuracy.
@@ -26,8 +26,11 @@ that concept. Jev failure may use a live generative fallback labelled
 
 Accept `attemptId`, `nextQuestionId`, `answer`, and `explanation`.
 Return HTTP 200 with `status: "verified" | "needsPractice" | "educatorReview"`
-and `reason`. Use the private question's verification rubric; sufficient evidence
-of a reasoning error means needsPractice, while uncertainty means educatorReview.
+and `reason`, and no other fields. Send the private question's verification rubric
+and required reasoning points to the model, and let that rubric decide the status:
+the model must not substitute its own thresholds, and equivalent notation or
+wording still satisfies a criterion. Sufficient evidence of a reasoning error
+means needsPractice, while uncertainty means educatorReview.
 Immediate success is not proof of lasting learning. The browser stores the result.
 
 ## Stateless attempt binding
@@ -54,11 +57,12 @@ trusting payload fields. Signing does not encrypt the payload: include no studen
 responses, answer keys, rubrics, or API keys. The session ID is a random demo ID,
 not a real student identity or authentication mechanism.
 
-The future verify handler must validate payload shape, supported token version, timestamps,
-signature, expiry, current course-pack version, both question IDs, same-concept
-pairing, and the submitted `nextQuestionId` matching the assigned ID. Review
-attempts with a null next question cannot be verified. Altered, expired, malformed,
-or mismatched tokens get HTTP 400. Local verification is stateless and permits
+The verify handler validates payload shape, supported token version, timestamps, a
+timing-safe signature, expiry, and the submitted `nextQuestionId` matching the
+assigned ID. Review attempts with a null next question cannot be verified. Altered,
+expired, malformed, or mismatched tokens get HTTP 400. Still open: rejecting a
+token whose `coursePackVersion` no longer matches the pack, and re-checking
+same-concept pairing at verify time. Local verification is stateless and permits
 replay until expiry; the UI should replace a result for the same attempt rather
 than count repeated submissions as new learning. No server student database exists.
 
