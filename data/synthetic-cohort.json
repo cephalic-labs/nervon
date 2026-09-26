@@ -1,0 +1,9 @@
+{
+  "disclosure": "Authored illustration of 24 synthetic learners. These counts are fixed demo data, not live model results or measured educational accuracy.",
+  "learnerCount": 24,
+  "concepts": [
+    {"conceptId":"genotype-phenotype","attempts":24,"verified":12,"needsPractice":8,"educatorReview":4,"pattern":"A dominant phenotype must mean two dominant alleles","count":8},
+    {"conceptId":"segregation","attempts":24,"verified":15,"needsPractice":6,"educatorReview":3,"pattern":"Offspring ratios guarantee exact counts in every family","count":6},
+    {"conceptId":"independent-assortment","attempts":24,"verified":10,"needsPractice":9,"educatorReview":5,"pattern":"Alleles at different unlinked loci travel together","count":9}
+  ]
+}
