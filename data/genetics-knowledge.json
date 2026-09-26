@@ -1,0 +1,172 @@
+{
+  "version": "1.0.0",
+  "disclosure": "Challenge-authored genetics learning scaffolds, adapted from the attributed course sources; not independently validated.",
+  "concepts": [
+    {
+      "conceptId": "genotype-phenotype",
+      "prerequisites": [
+        "A diploid organism has two alleles at a locus.",
+        "Genotype names the alleles; phenotype is the observable trait."
+      ],
+      "lesson": {
+        "title": "Rebuild the idea step by step",
+        "keyIdea": "One dominant allele can be enough to produce the dominant phenotype under complete dominance.",
+        "workedExample": "In a synthetic plant, C gives curled leaves and c gives flat leaves with complete dominance. CC and Cc both have curled leaves; only cc has flat leaves. The c allele is still present in Cc even though its effect is masked.",
+        "steps": [
+          "Write the two alleles in each possible genotype.",
+          "Use the stated dominance rule to predict each phenotype.",
+          "Work backward from the observed phenotype; keep every genotype that fits."
+        ],
+        "sourceIds": [
+          "genotype-phenotype-source"
+        ]
+      },
+      "probes": [
+        {
+          "id": "genotype-phenotype-1-probe-1",
+          "questionId": "genotype-phenotype-1",
+          "prompt": "Could a Pp plant have purple flowers under complete dominance? State what each allele contributes to your prediction.",
+          "hypotheses": [
+            "dominant-means-homozygous"
+          ]
+        },
+        {
+          "id": "genotype-phenotype-1-probe-2",
+          "questionId": "genotype-phenotype-1",
+          "prompt": "In a Pp plant, does the p allele remain present when the dominant trait is visible? Explain what you mean by \u201cdominant\u201d.",
+          "hypotheses": [
+            "recessive-allele-disappears"
+          ]
+        },
+        {
+          "id": "genotype-phenotype-2-probe-1",
+          "questionId": "genotype-phenotype-2",
+          "prompt": "Could a Rr plant have red flowers under complete dominance? State what each allele contributes to your prediction.",
+          "hypotheses": [
+            "dominant-means-homozygous"
+          ]
+        },
+        {
+          "id": "genotype-phenotype-2-probe-2",
+          "questionId": "genotype-phenotype-2",
+          "prompt": "In a Rr plant, does the r allele remain present when the dominant trait is visible? Explain what you mean by \u201cdominant\u201d.",
+          "hypotheses": [
+            "recessive-allele-disappears"
+          ]
+        }
+      ]
+    },
+    {
+      "conceptId": "segregation",
+      "prerequisites": [
+        "A gamete receives one allele per locus.",
+        "Fertilization combines one gamete from each parent."
+      ],
+      "lesson": {
+        "title": "Rebuild the idea step by step",
+        "keyIdea": "Separate alleles into gametes before combining parental possibilities.",
+        "workedExample": "For a synthetic one-locus cross Dd \u00d7 dd with complete dominance and equal gamete probabilities, the first parent contributes D or d with probability 1/2 each. The second contributes d only. Offspring are Dd or dd with probability 1/2 each. These are probabilities, not a guarantee of exact counts in a small family.",
+        "steps": [
+          "List the possible gametes for each parent, one allele per gamete.",
+          "Combine one gamete from each parent and multiply their probabilities.",
+          "Group identical genotypes; translate to phenotypes only if asked."
+        ],
+        "sourceIds": [
+          "segregation-source"
+        ]
+      },
+      "probes": [
+        {
+          "id": "segregation-1-probe-1",
+          "questionId": "segregation-1",
+          "prompt": "Focus only on a Tt parent. Which allele or alleles can one gamete carry at this locus? Explain how the parent produces those gametes.",
+          "hypotheses": [
+            "gametes-retain-both-alleles"
+          ]
+        },
+        {
+          "id": "segregation-1-probe-2",
+          "questionId": "segregation-1",
+          "prompt": "For Tt \u00d7 Tt, list the possible gametes from each parent separately. Then show how one pair of gametes forms one offspring genotype; are you counting genotypes or visible traits?",
+          "hypotheses": [
+            "genotype-phenotype-ratio-confusion",
+            "memorized-cross-ratio"
+          ]
+        },
+        {
+          "id": "segregation-2-probe-1",
+          "questionId": "segregation-2",
+          "prompt": "Focus only on a Bb parent. Which allele or alleles can one gamete carry at this locus? Explain how the parent produces those gametes.",
+          "hypotheses": [
+            "gametes-retain-both-alleles"
+          ]
+        },
+        {
+          "id": "segregation-2-probe-2",
+          "questionId": "segregation-2",
+          "prompt": "For Bb \u00d7 bb, list the possible gametes from each parent separately. Then show how one pair of gametes forms one offspring genotype; are you counting genotypes or visible traits?",
+          "hypotheses": [
+            "genotype-phenotype-ratio-confusion",
+            "memorized-cross-ratio"
+          ]
+        }
+      ]
+    },
+    {
+      "conceptId": "independent-assortment",
+      "prerequisites": [
+        "Each gamete gets one allele from each locus.",
+        "For unlinked genes in this model, allele choices at different loci are independent."
+      ],
+      "lesson": {
+        "title": "Rebuild the idea step by step",
+        "keyIdea": "Choose one allele per locus, then combine independent choices.",
+        "workedExample": "For a synthetic EeFf parent with unlinked genes and equal segregation, E or e each has probability 1/2, independently of F or f. EF, Ef, eF and ef therefore each have probability 1/4. In EeFf \u00d7 eeff, the other parent contributes ef only, giving four equally likely offspring genotypes. Complete dominance translates these into four phenotypes.",
+        "steps": [
+          "List the allele options at the first locus.",
+          "Pair each with every option at the second unlinked locus.",
+          "Multiply independent probabilities, then combine with the other parent\u2019s actual gametes."
+        ],
+        "sourceIds": [
+          "independent-assortment-source"
+        ]
+      },
+      "probes": [
+        {
+          "id": "independent-assortment-1-probe-1",
+          "questionId": "independent-assortment-1",
+          "prompt": "For the AaBb parent, the two genes are unlinked. After a gamete receives A, must it also receive B, or could it receive b? Explain why.",
+          "hypotheses": [
+            "alleles-must-travel-together"
+          ]
+        },
+        {
+          "id": "independent-assortment-1-probe-2",
+          "questionId": "independent-assortment-1",
+          "prompt": "How many alleles should one gamete from AaBb contain at each of these two loci? List all combinations by pairing one choice at each locus and explain their probabilities.",
+          "hypotheses": [
+            "gametes-retain-both-alleles",
+            "memorized-dihybrid-ratio"
+          ]
+        },
+        {
+          "id": "independent-assortment-2-probe-1",
+          "questionId": "independent-assortment-2",
+          "prompt": "For the RrYy parent, the two genes are unlinked. After a gamete receives R, must it also receive Y, or could it receive y? Explain why.",
+          "hypotheses": [
+            "alleles-must-travel-together"
+          ]
+        },
+        {
+          "id": "independent-assortment-2-probe-2",
+          "questionId": "independent-assortment-2",
+          "prompt": "How many alleles should one gamete from RrYy contain at each of these two loci? List all combinations by pairing one choice at each locus and explain their probabilities.",
+          "hypotheses": [
+            "gametes-retain-both-alleles",
+            "memorized-dihybrid-ratio"
+          ]
+        }
+      ]
+    }
+  ]
+}
