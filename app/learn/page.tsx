@@ -1,23 +1,35 @@
 import { getPublicCourse } from "@/lib/course";
 import LearnerFlow from "@/components/LearnerFlow";
 import Link from "next/link";
+import { ArrowLeft, BookOpen } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 
 export default function LearnPage() {
   const course = getPublicCourse("classical-genetics");
 
   return (
-    <div className="max-w-5xl mx-auto p-8 flex flex-col gap-6">
-      <header className="flex justify-between items-center border-b pb-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-bold">Nervon Coach</h1>
-          <p className="text-sm text-gray-500">Course: {course.title}</p>
-        </div>
-        <Link href="/" className="text-blue-600 hover:underline">Back to Course</Link>
-      </header>
+    <div className="min-h-screen bg-slate-50/30">
+      <div className="max-w-6xl mx-auto p-6 md:p-10 flex flex-col gap-8">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-6 gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-2.5 bg-blue-100 rounded-lg">
+              <BookOpen className="h-6 w-6 text-blue-700" />
+            </div>
+            <div className="flex flex-col">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Nervon Coach</h1>
+              <p className="text-sm font-medium text-slate-500">Course: {course.title}</p>
+            </div>
+          </div>
+          <Link href="/" className={buttonVariants({ variant: "ghost", className: "text-slate-600 hover:text-slate-900" })}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Course
+          </Link>
+        </header>
 
-      <main className="mt-4">
-        <LearnerFlow course={course} />
-      </main>
+        <main className="w-full">
+          <LearnerFlow course={course} />
+        </main>
+      </div>
     </div>
   );
 }
