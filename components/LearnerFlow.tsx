@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { PublicCourse, AnalyzeResponse, ApiError } from "@/lib/contracts";
+import type { PublicCourse, AnalyzeResponse, ApiError, VerifyResponse } from "@/lib/contracts";
+import { verified } from "@/tests/fixtures/learner-contracts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 import AttemptForm from "./AttemptForm";
 import FeedbackPanel from "./FeedbackPanel";
-import { AlertCircle, ChevronRight, CheckCircle2 } from "lucide-react";
+import { AlertCircle, ChevronRight, CheckCircle2, CheckSquare } from "lucide-react";
 
 export default function LearnerFlow({ course }: { course: PublicCourse }) {
   const [selectedConceptId, setSelectedConceptId] = useState<string>("");
@@ -16,6 +17,8 @@ export default function LearnerFlow({ course }: { course: PublicCourse }) {
   const [analyzeResponse, setAnalyzeResponse] = useState<AnalyzeResponse | null>(null);
   const [localSessionId, setLocalSessionId] = useState<string | null>(null);
 
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verifyResponse, setVerifyResponse] = useState<VerifyResponse | null>(null);
 
   useEffect(() => {
     let sid = localStorage.getItem("nervon_demo_session_id");
@@ -23,13 +26,28 @@ export default function LearnerFlow({ course }: { course: PublicCourse }) {
       sid = crypto.randomUUID();
       localStorage.setItem("nervon_demo_session_id", sid);
     }
-    // The session ID is read from a browser-only API after hydration.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalSessionId(sid);
   }, []);
 
   const selectedConcept = course.concepts.find((c) => c.id === selectedConceptId);
   const initialQuestion = selectedConcept?.questions[0];
+
+  // Sync to educator view
+  useEffect(() => {
+    if (selectedConcept && analyzeResponse) {
+      localStorage.setItem("nervon_educator_sync", JSON.stringify({
+        conceptTitle: selectedConcept.title,
+        conceptId: selectedConcept.id,
+        diagnosisLabel: analyzeResponse.diagnosis.label,
+        reviewRequired: analyzeResponse.diagnosis.reviewRequired,
+        verifyStatus: verifyResponse?.status || "pending",
+        timestamp: Date.now()
+      }));
+      // Dispatch custom event for same-window updates
+      window.dispatchEvent(new Event("nervon_sync_update"));
+    }
+  }, [selectedConcept, analyzeResponse, verifyResponse]);
 
   const handleInitialSubmit = async (answer: string, explanation: string) => {
     if (!selectedConcept || !initialQuestion || !localSessionId) {
@@ -40,6 +58,7 @@ export default function LearnerFlow({ course }: { course: PublicCourse }) {
     setIsSubmitting(true);
     setApiError(null);
     setAnalyzeResponse(null);
+    setVerifyResponse(null);
 
     try {
       const response = await fetch("/api/analyze", {
@@ -74,9 +93,13 @@ export default function LearnerFlow({ course }: { course: PublicCourse }) {
     }
   };
 
-  const handleNextQuestionSubmit = (answer: string, explanation: string) => {
-    console.log("Verification submission deferred:", { answer, explanation });
-    alert("Verification submission will be integrated in a later milestone.");
+  const handleNextQuestionSubmit = () => {
+    setIsVerifying(true);
+    // Mock /api/verify for demo completion
+    setTimeout(() => {
+      setVerifyResponse(verified as VerifyResponse);
+      setIsVerifying(false);
+    }, 1500);
   };
 
   if (!selectedConceptId) {
@@ -94,7 +117,7 @@ export default function LearnerFlow({ course }: { course: PublicCourse }) {
               className="w-full rounded-xl text-left focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
               onClick={() => setSelectedConceptId(concept.id)}
             >
-              <Card className="cursor-pointer transition-all hover:border-primary/50 hover:shadow-md group">
+              <Card className="cursor-pointer transition-all hover:border-primary/50 hover:shadow-md group h-full">
                 <CardHeader>
                   <CardTitle className="text-xl flex items-center justify-between group-hover:text-primary transition-colors">
                     {concept.title}
@@ -126,6 +149,7 @@ export default function LearnerFlow({ course }: { course: PublicCourse }) {
             setSelectedConceptId("");
             setAnalyzeResponse(null);
             setApiError(null);
+            setVerifyResponse(null);
           }}
         >
           Change Concept
@@ -179,11 +203,13 @@ export default function LearnerFlow({ course }: { course: PublicCourse }) {
             </div>
           )}
 
-          {analyzeResponse && !analyzeResponse.diagnosis.reviewRequired && analyzeResponse.nextQuestion && (
+          {analyzeResponse && !analyzeResponse.diagnosis.reviewRequired && analyzeResponse.nextQuestion && !verifyResponse && (
             <div className="flex flex-col gap-4 mt-2 animate-in fade-in slide-in-from-top-4 duration-500">
               <Card className="border-blue-200 shadow-sm bg-blue-50/30">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg text-blue-800">Check your understanding</CardTitle>
+                  <CardTitle className="text-lg text-blue-800 flex items-center gap-2">
+                    <CheckSquare className="h-5 w-5" /> Check your understanding
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm leading-relaxed">{analyzeResponse.nextQuestion.prompt}</p>
@@ -191,9 +217,33 @@ export default function LearnerFlow({ course }: { course: PublicCourse }) {
               </Card>
               <AttemptForm 
                 onSubmit={handleNextQuestionSubmit} 
-                isSubmitting={false}
+                isSubmitting={isVerifying}
+                disabled={isVerifying}
                 buttonText="Submit Verification (Demo)"
               />
+            </div>
+          )}
+
+          {verifyResponse && (
+            <div className="mt-2 animate-in fade-in slide-in-from-top-4 duration-500">
+               <Card className="border-green-200 shadow-sm bg-green-50/50">
+                <CardHeader className="pb-3 border-b border-green-100 bg-green-100/30">
+                  <CardTitle className="text-lg text-green-800 flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5" /> Verification {verifyResponse.status}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <p className="text-sm text-green-900 leading-relaxed">{verifyResponse.reason}</p>
+                  <div className="mt-4 pt-4 border-t border-green-200/50 flex justify-end">
+                     <Button variant="outline" className="text-green-800 border-green-300 hover:bg-green-100" onClick={() => {
+                        setSelectedConceptId("");
+                        setAnalyzeResponse(null);
+                        setApiError(null);
+                        setVerifyResponse(null);
+                     }}>Next Concept</Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
         </div>
